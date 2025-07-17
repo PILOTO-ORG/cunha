@@ -1,0 +1,662 @@
+PS C:\Users\VivoBook\trabalho\o-piloto\cunha\frontend> node scripts/test-api.js
+🚀 INICIANDO TESTES DA API CUNHA FESTAS ERP
+
+URL da API: https://n8n.piloto.live/webhook/cunha-festas
+
+📋 CATEGORIA: PRODUTOS
+==================================================
+
+🔍 Testando: Listar todos os produtos
+Payload: {
+  "action": "listar_produtos"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_produto": 14,
+    "nome": "Açucareiro de porcelana branco",
+    "quantidade_total": 5,
+    "valor_locacao": null,
+    "valor_danificacao": null,
+    "tempo_limpeza": null
+  },
+  "action": "listar_produtos",
+  "timestamp": "2025-07-11T23:38:45.017Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Criar novo produto
+Payload: {
+  "action": "criar_produto",
+  "nome": "Cadeira Tiffany - Teste",
+  "quantidade_total": 50,
+  "valor_locacao": 8.5,
+  "valor_danificacao": 45,
+  "tempo_limpeza": 5
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_produto": 761,
+    "nome": "Cadeira Tiffany - Teste",
+    "quantidade_total": 50,
+    "valor_locacao": "8.5",
+    "valor_danificacao": "45",
+    "tempo_limpeza": 5
+  },
+  "action": "criar_produto",
+  "timestamp": "2025-07-11T23:38:46.302Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar produto por ID
+Payload: {
+  "action": "buscar_produto",
+  "id_produto": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "buscar_produto",
+  "timestamp": "2025-07-11T23:38:47.578Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Atualizar produto
+Payload: {
+  "action": "atualizar_produto",
+  "id_produto": 1,
+  "nome": "Cadeira Tiffany - Atualizada",
+  "valor_locacao": 9
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "success": true
+  },
+  "action": "atualizar_produto",
+  "timestamp": "2025-07-11T23:38:48.851Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Verificar disponibilidade do produto
+Payload: {
+  "action": "verificar_disponibilidade",
+  "id_produto": 1,
+  "data_inicio": "2025-08-15T18:00:00.000Z",
+  "data_fim": "2025-08-15T23:00:00.000Z"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "verificar_disponibilidade",
+  "timestamp": "2025-07-11T23:38:50.145Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Listar produtos com estoque baixo
+Payload: {
+  "action": "listar_produtos_estoque_baixo"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_produto": 435,
+    "nome": "Tapetes 3 x 2 mts rose",
+    "quantidade_total": 0,
+    "valor_locacao": null,
+    "valor_danificacao": null,
+    "tempo_limpeza": null
+  },
+  "action": "listar_produtos_estoque_baixo",
+  "timestamp": "2025-07-11T23:38:51.456Z"
+}
+--------------------------------------------------
+
+FIM DA CATEGORIA: PRODUTOS
+
+================================================================================
+
+📋 CATEGORIA: CLIENTES
+==================================================
+
+🔍 Testando: Listar todos os clientes
+Payload: {
+  "action": "listar_clientes"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_cliente": 1,
+    "nome": "Luan",
+    "telefone": "48998589586",
+    "email": "luan@piloto.life",
+    "cpf_cnpj": "10802025951"
+  },
+  "action": "listar_clientes",
+  "timestamp": "2025-07-11T23:38:52.750Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Criar novo cliente
+Payload: {
+  "action": "criar_cliente",
+  "nome": "João da Silva - Teste",
+  "telefone": "(11) 99999-9999",
+  "email": "joao.teste@email.com",
+  "cpf_cnpj": "123.456.789-00"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_cliente": 2,
+    "nome": "João da Silva - Teste",
+    "telefone": "(11) 99999-9999",
+    "email": "joao.teste@email.com",
+    "cpf_cnpj": "123.456.789-00"
+  },
+  "action": "criar_cliente",
+  "timestamp": "2025-07-11T23:38:54.027Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar cliente por ID
+Payload: {
+  "action": "buscar_cliente",
+  "id_cliente": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_cliente": 1,
+    "nome": "Luan",
+    "telefone": "48998589586",
+    "email": "luan@piloto.life",
+    "cpf_cnpj": "10802025951"
+  },
+  "action": "buscar_cliente",
+  "timestamp": "2025-07-11T23:38:55.285Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Atualizar cliente
+Payload: {
+  "action": "atualizar_cliente",
+  "id_cliente": 1,
+  "telefone": "(11) 88888-8888"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_cliente": 1,
+    "nome": "Luan",
+    "telefone": "(11) 88888-8888",
+    "email": "luan@piloto.life",
+    "cpf_cnpj": "10802025951"
+  },
+  "action": "atualizar_cliente",
+  "timestamp": "2025-07-11T23:38:56.577Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar clientes por nome
+Payload: {
+  "action": "buscar_clientes_nome",
+  "nome": "João"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_cliente": 2,
+    "nome": "João da Silva - Teste",
+    "telefone": "(11) 99999-9999",
+    "email": "joao.teste@email.com",
+    "cpf_cnpj": "123.456.789-00"
+  },
+  "action": "buscar_clientes_nome",
+  "timestamp": "2025-07-11T23:38:57.856Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar cliente por email
+Payload: {
+  "action": "buscar_cliente_email",
+  "email": "joao.teste@email.com"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_cliente": 2,
+    "nome": "João da Silva - Teste",
+    "telefone": "(11) 99999-9999",
+    "email": "joao.teste@email.com",
+    "cpf_cnpj": "123.456.789-00"
+  },
+  "action": "buscar_cliente_email",
+  "timestamp": "2025-07-11T23:38:59.322Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Verificar se cliente existe
+Payload: {
+  "action": "verificar_cliente_existe",
+  "email": "joao.teste@email.com"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "total": "1"
+  },
+  "action": "verificar_cliente_existe",
+  "timestamp": "2025-07-11T23:39:00.591Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Obter estatísticas do cliente
+Payload: {
+  "action": "obter_estatisticas_cliente",
+  "id_cliente": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_cliente": 1,
+    "nome": "Luan",
+    "total_reservas": "1",
+    "ultima_reserva": "2025-07-01T03:00:00.000Z"
+  },
+  "action": "obter_estatisticas_cliente",
+  "timestamp": "2025-07-11T23:39:01.870Z"
+}
+--------------------------------------------------
+
+FIM DA CATEGORIA: CLIENTES
+
+================================================================================
+
+📋 CATEGORIA: LOCAIS
+==================================================
+
+🔍 Testando: Listar todos os locais
+Payload: {
+  "action": "listar_locais"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_local": 1,
+    "descricao": "Arena Opus",
+    "endereco": "São José, Santa Catarina; Brasil",
+    "capacidade": 17000,
+    "tipo": "Arena"
+  },
+  "action": "listar_locais",
+  "timestamp": "2025-07-11T23:39:03.256Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Criar novo local
+Payload: {
+  "action": "criar_local",
+  "descricao": "Salão de Festas - Teste",
+  "endereco": "Rua Teste, 123",
+  "capacidade": 100,
+  "tipo": "salao"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_local": 2,
+    "descricao": "Salão de Festas - Teste",
+    "endereco": "Rua Teste, 123",
+    "capacidade": 100,
+    "tipo": "salao"
+  },
+  "action": "criar_local",
+  "timestamp": "2025-07-11T23:39:04.559Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar local por ID
+Payload: {
+  "action": "buscar_local",
+  "id_local": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_local": 1,
+    "descricao": "Arena Opus",
+    "endereco": "São José, Santa Catarina; Brasil",
+    "capacidade": 17000,
+    "tipo": "Arena"
+  },
+  "action": "buscar_local",
+  "timestamp": "2025-07-11T23:39:05.832Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Atualizar local
+Payload: {
+  "action": "atualizar_local",
+  "id_local": 1,
+  "capacidade": 120
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_local": 1,
+    "descricao": "Arena Opus",
+    "endereco": "São José, Santa Catarina; Brasil",
+    "capacidade": 120,
+    "tipo": "Arena"
+  },
+  "action": "atualizar_local",
+  "timestamp": "2025-07-11T23:39:07.113Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar locais por tipo
+Payload: {
+  "action": "buscar_locais_tipo",
+  "tipo": "salao"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_local": 2,
+    "descricao": "Salão de Festas - Teste",
+    "endereco": "Rua Teste, 123",
+    "capacidade": 100,
+    "tipo": "salao"
+  },
+  "action": "buscar_locais_tipo",
+  "timestamp": "2025-07-11T23:39:08.382Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Verificar disponibilidade do local
+Payload: {
+  "action": "verificar_disponibilidade_local",
+  "id_local": 1,
+  "data_inicio": "2025-08-15T18:00:00.000Z",
+  "data_fim": "2025-08-15T23:00:00.000Z"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_local": 1,
+    "descricao": "Arena Opus",
+    "reservas_conflitantes": "0"
+  },
+  "action": "verificar_disponibilidade_local",
+  "timestamp": "2025-07-11T23:39:09.655Z"
+}
+--------------------------------------------------
+
+FIM DA CATEGORIA: LOCAIS
+
+================================================================================
+
+📋 CATEGORIA: RESERVAS
+==================================================
+
+🔍 Testando: Listar todas as reservas
+Payload: {
+  "action": "listar_reservas"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_item_reserva": 2,
+    "id_reserva": 2,
+    "id_cliente": 1,
+    "id_local": 1,
+    "data_inicio": "2025-07-01T03:00:00.000Z",
+    "data_fim": "2025-07-01T03:00:00.000Z",
+    "status": "ativa",
+    "id_produto": 474,
+    "quantidade": 1,
+    "cliente_nome": "Luan",
+    "local_descricao": "Arena Opus",
+    "produto_nome": "Toalha brocada verde 3,30 mts"
+  },
+  "action": "listar_reservas",
+  "timestamp": "2025-07-11T23:39:10.920Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Criar nova reserva
+Payload: {
+  "action": "criar_reserva",
+  "id_cliente": 1,
+  "id_local": 1,
+  "data_inicio": "2025-08-15T18:00:00.000Z",
+  "data_fim": "2025-08-15T23:00:00.000Z",
+  "id_produto": 1,
+  "quantidade": 10,
+  "status": "ativa"
+}
+❌ Erro HTTP 500: {
+  "message": "Error in workflow"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar reserva por ID
+Payload: {
+  "action": "buscar_reserva",
+  "id_item_reserva": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "buscar_reserva",
+  "timestamp": "2025-07-11T23:39:13.453Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Atualizar reserva
+Payload: {
+  "action": "atualizar_reserva",
+  "id_item_reserva": 1,
+  "quantidade": 15
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "success": true
+  },
+  "action": "atualizar_reserva",
+  "timestamp": "2025-07-11T23:39:14.714Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar reservas por cliente
+Payload: {
+  "action": "buscar_reservas_cliente",
+  "id_cliente": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_item_reserva": 2,
+    "id_reserva": 2,
+    "id_cliente": 1,
+    "id_local": 1,
+    "data_inicio": "2025-07-01T03:00:00.000Z",
+    "data_fim": "2025-07-01T03:00:00.000Z",
+    "status": "ativa",
+    "id_produto": 474,
+    "quantidade": 1,
+    "local_descricao": "Arena Opus",
+    "produto_nome": "Toalha brocada verde 3,30 mts"
+  },
+  "action": "buscar_reservas_cliente",
+  "timestamp": "2025-07-11T23:39:15.986Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar reservas por produto
+Payload: {
+  "action": "buscar_reservas_produto",
+  "id_produto": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "buscar_reservas_produto",
+  "timestamp": "2025-07-11T23:39:17.278Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar reservas por período
+Payload: {
+  "action": "buscar_reservas_periodo",
+  "data_inicio": "2025-08-01T00:00:00.000Z",
+  "data_fim": "2025-08-31T23:59:59.000Z"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "buscar_reservas_periodo",
+  "timestamp": "2025-07-11T23:39:18.559Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Atualizar status da reserva
+Payload: {
+  "action": "atualizar_status_reserva",
+  "id_item_reserva": 1,
+  "status": "concluída"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "success": true
+  },
+  "action": "atualizar_status_reserva",
+  "timestamp": "2025-07-11T23:39:19.840Z"
+}
+--------------------------------------------------
+
+FIM DA CATEGORIA: RESERVAS
+
+================================================================================
+
+📋 CATEGORIA: MOVIMENTOS
+==================================================
+
+🔍 Testando: Listar todos os movimentos
+Payload: {
+  "action": "listar_movimentos"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {
+    "id_evento": 2,
+    "id_produto": 474,
+    "data_evento": "2025-06-30T21:29:29.771Z",
+    "tipo_evento": "perda",
+    "quantidade": 1,
+    "observacao": "Rasgou na Arena Opus durante evento do cliente Luan",      
+    "responsavel": null,
+    "reserva_id": null,
+    "produto_nome": "Toalha brocada verde 3,30 mts"
+  },
+  "action": "listar_movimentos",
+  "timestamp": "2025-07-11T23:39:21.111Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Criar novo movimento
+Payload: {
+  "action": "criar_movimento",
+  "id_produto": 1,
+  "tipo_evento": "entrada",
+  "quantidade": 20,
+  "observacao": "Entrada de estoque - Teste",
+  "responsavel": "Sistema de Teste"
+}
+❌ Erro HTTP 500: {
+  "message": "Error in workflow"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar movimento por ID
+Payload: {
+  "action": "buscar_movimento",
+  "id_evento": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "buscar_movimento",
+  "timestamp": "2025-07-11T23:39:23.648Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar movimentos por produto
+Payload: {
+  "action": "buscar_movimentos_produto",
+  "id_produto": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "buscar_movimentos_produto",
+  "timestamp": "2025-07-11T23:39:24.918Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar movimentos por tipo
+Payload: {
+  "action": "buscar_movimentos_tipo",
+  "tipo_evento": "entrada"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "buscar_movimentos_tipo",
+  "timestamp": "2025-07-11T23:39:26.172Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Buscar movimentos por período
+Payload: {
+  "action": "buscar_movimentos_periodo",
+  "data_inicio": "2025-07-01T00:00:00.000Z",
+  "data_fim": "2025-07-31T23:59:59.000Z"
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "buscar_movimentos_periodo",
+  "timestamp": "2025-07-11T23:39:27.440Z"
+}
+--------------------------------------------------
+
+🔍 Testando: Obter histórico completo do produto
+Payload: {
+  "action": "obter_historico_produto",
+  "id_produto": 1
+}
+✅ Sucesso: {
+  "success": true,
+  "data": {},
+  "action": "obter_historico_produto",
+  "timestamp": "2025-07-11T23:39:28.703Z"
+}
+--------------------------------------------------
+
+FIM DA CATEGORIA: MOVIMENTOS
+
+================================================================================
+
+📊 RESUMO DOS TESTES
+==================================================
+Total de testes: 35
+Sucessos: 33
+Falhas: 2
+Taxa de sucesso: 94.3%
+
+⚠️  ALGUNS TESTES FALHARAM. Verifique os logs acima.

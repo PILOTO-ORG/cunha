@@ -1,0 +1,55 @@
+{
+  "ai_prompt": {
+    "description": "Assistente IA para ERP de locação de itens para eventos",
+    "context": "Sistema de gestão completo para empresas de locação de itens para eventos, incluindo controle de estoque, clientes, orçamentos e reservas."
+  },
+  "interaction_examples": [
+    {
+      "pergunta": "Quantos produtos temos disponíveis no estoque?",
+      "sql_query": "SELECT COUNT(*) as total_produtos FROM produtos WHERE ativo = true",
+      "resposta": "Temos 150 produtos diferentes cadastrados no sistema, com um total de 2.847 itens disponíveis para locação.",
+      "categoria": "produtos",
+      "success": true
+    },
+    {
+      "pergunta": "Mostre os 5 clientes que mais fizeram reservas este mês",
+      "sql_query": "SELECT c.nome, COUNT(r.id) as total_reservas FROM clientes c INNER JOIN reservas r ON c.id = r.cliente_id WHERE r.data_criacao >= DATE_TRUNC('month', CURRENT_DATE) GROUP BY c.nome ORDER BY total_reservas DESC LIMIT 5",
+      "resposta": "1. Maria Silva - 8 reservas\\n2. João Santos - 6 reservas\\n3. Ana Costa - 5 reservas\\n4. Carlos Oliveira - 4 reservas\\n5. Fernanda Lima - 4 reservas",
+      "categoria": "clientes",
+      "success": true
+    },
+    {
+      "pergunta": "Qual o valor total de orçamentos pendentes?",
+      "sql_query": "SELECT SUM(valor_total) as valor_total FROM orcamentos WHERE status = 'pendente'",
+      "resposta": "Temos 23 orçamentos pendentes com um valor total de R$ 45.670,00. Isso representa uma boa oportunidade de conversão!",
+      "categoria": "orcamentos",
+      "success": true
+    },
+    {
+      "pergunta": "Quais produtos estão com estoque baixo?",
+      "sql_query": "SELECT nome, quantidade_disponivel, estoque_minimo FROM produtos WHERE quantidade_disponivel <= estoque_minimo",
+      "resposta": "Produtos com estoque baixo:\\n• Mesas Redondas - 3 disponíveis (mín: 5)\\n• Cadeiras Tiffany - 45 disponíveis (mín: 60)\\n• Sistema de Som - 1 disponível (mín: 3)",
+      "categoria": "produtos",
+      "success": true
+    },
+    {
+      "pergunta": "Como adicionar um novo produto?",
+      "sql_query": "",
+      "resposta": "Para adicionar um produto:\\n1. Acesse Menu → Produtos → Novo\\n2. Preencha nome, categoria e preço\\n3. Defina quantidade e estoque mínimo\\n4. Adicione fotos e descrição\\n5. Salve o produto",
+      "categoria": "produtos",
+      "success": true
+    }
+  ],
+  "categories": [
+    "produtos",
+    "clientes", 
+    "orcamentos",
+    "reservas",
+    "relatorios",
+    "suporte"
+  ],
+  "metadata": {
+    "version": "1.0",
+    "total_examples": 5
+  }
+}
