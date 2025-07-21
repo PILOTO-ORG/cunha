@@ -12,7 +12,7 @@ import HomePage from './pages/HomePage.tsx';
 import NandaPage from './pages/NandaPage.tsx';
 import ProductsPage from './pages/ProductsPage.tsx';
 import ClientsPage from './pages/ClientsPage.tsx';
-import BudgetsPage from './pages/BudgetsPage.tsx';
+import BudgetsPage from './pages/OrcamentosPage.tsx';
 import ReservasPage from './pages/ReservasPage.tsx';
 import LocaisPage from './pages/LocaisPage.tsx';
 import MovimentosPage from './pages/MovimentosPage.tsx';

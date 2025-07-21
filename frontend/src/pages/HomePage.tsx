@@ -243,48 +243,48 @@ const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
-                name: 'Produtos',
-                description: 'Gerencie o catálogo e estoque',
-                icon: '📦',
-                path: '/produtos',
-                color: 'bg-blue-500'
+              name: 'Produtos',
+              description: 'Gerencie o catálogo e estoque',
+              icon: '🛒',
+              path: '/produtos',
+              color: 'bg-blue-500'
               },
               {
-                name: 'Clientes',
-                description: 'Cadastro e histórico de clientes',
-                icon: '�',
-                path: '/clientes',
-                color: 'bg-green-500'
+              name: 'Clientes',
+              description: 'Cadastro e histórico de clientes',
+              icon: '👥',
+              path: '/clientes',
+              color: 'bg-green-500'
               },
               {
-                name: 'Orçamentos',
-                description: 'Criação e aprovação de orçamentos',
-                icon: '�',
-                path: '/orcamentos',
-                color: 'bg-yellow-500'
+              name: 'Orçamentos',
+              description: 'Criação e aprovação de orçamentos',
+              icon: '📊',
+              path: '/orcamentos',
+              color: 'bg-yellow-500'
               },
               {
-                name: 'Reservas',
-                description: 'Controle de reservas e eventos',
-                icon: '📅',
-                path: '/reservas',
-                color: 'bg-purple-500'
+              name: 'Reservas',
+              description: 'Controle de reservas e eventos',
+              icon: '📅',
+              path: '/reservas',
+              color: 'bg-purple-500'
               }
             ].map((module) => (
               <Link
-                key={module.name}
-                to={module.path}
-                className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
+              key={module.name}
+              to={module.path}
+              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
               >
-                <div className="flex items-center space-x-4">
-                  <div className={`${module.color} p-3 rounded-lg group-hover:scale-105 transition-transform`}>
-                    <span className="text-xl text-white">{module.icon}</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">{module.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{module.description}</p>
-                  </div>
+              <div className="flex items-center space-x-4">
+                <div className={`${module.color} p-3 rounded-lg group-hover:scale-105 transition-transform`}>
+                <span className="text-xl text-white">{module.icon}</span>
                 </div>
+                <div>
+                <h3 className="font-medium text-gray-900">{module.name}</h3>
+                <p className="text-sm text-gray-500 mt-1">{module.description}</p>
+                </div>
+              </div>
               </Link>
             ))}
           </div>
