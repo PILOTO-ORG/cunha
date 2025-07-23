@@ -9,7 +9,9 @@ import { useClientes } from '../hooks/useClientes.ts';
 import { useProdutos } from '../hooks/useProdutos.ts';
 import { useConverterOrcamento } from '../hooks/useOrcamentos.ts';
 import OrcamentoForm from '../components/OrcamentoForm.tsx';
-import type { Reserva, Cliente, Produto } from '../types/api';
+import { useLocais } from '../hooks/useLocais.ts';
+import { useQueryClient } from '@tanstack/react-query';
+import type { Reserva, Cliente, Produto, Local } from '../types/api';
 import { formatDateTime, formatCurrency } from '../utils/formatters.ts';
 
 // Tipo para orçamento agrupado
@@ -32,10 +34,11 @@ interface OrcamentoAgrupado {
 }
 
 const BudgetsPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ativa' | 'concluída' | 'cancelada' | 'iniciada' | ''>('');
   const [showModal, setShowModal] = useState(false);
-  const [selectedOrcamento, setSelectedOrcamento] = useState<Reserva | null>(null);
+  const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoAgrupado | null>(null);
   
   // Buscar apenas reservas com status "iniciada" (que são os orçamentos)
   const { data: orcamentosData, isLoading: isLoadingReservas, error, refetch } = useReservas({ 
@@ -46,6 +49,7 @@ const BudgetsPage: React.FC = () => {
   // Buscar todos os clientes e produtos para fazer join
   const { data: clientesData, isLoading: isLoadingClientes } = useClientes();
   const { data: produtosData, isLoading: isLoadingProdutos } = useProdutos();
+  const { data: locaisData, isLoading: isLoadingLocais } = useLocais();
   
   const excluirOrcamentoMutation = useRemoverReserva();
   const converterOrcamentoMutation = useConverterOrcamento();
@@ -53,8 +57,9 @@ const BudgetsPage: React.FC = () => {
   const reservas = orcamentosData?.data || [];
   const clientes = clientesData?.data || [];
   const produtos = produtosData?.data || [];
+  const locais = locaisData?.data || [];
   
-  const isLoading = isLoadingReservas || isLoadingClientes || isLoadingProdutos;
+  const isLoading = isLoadingReservas || isLoadingClientes || isLoadingProdutos || isLoadingLocais;
 
   // Criar mapas para lookup rápido
   const clientesMap = useMemo(() => {
@@ -130,8 +135,12 @@ const BudgetsPage: React.FC = () => {
   };
 
   const handleEditOrcamento = (orcamento: Reserva) => {
-    setSelectedOrcamento(orcamento);
-    setShowModal(true);
+    // Busca o grupo completo pelo id_reserva
+    const grupo = orcamentosAgrupados.find(o => o.id_reserva === orcamento.id_reserva);
+    if (grupo) {
+      setSelectedOrcamento(grupo);
+      setShowModal(true);
+    }
   };
 
   const handleDeleteOrcamento = async (id: number) => {
@@ -320,6 +329,11 @@ const BudgetsPage: React.FC = () => {
     }
   ];
 
+
+  // Força atualização dos dados de clientes e locais
+  const atualizarClientes = () => queryClient.invalidateQueries({ queryKey: ['clientes', 'list', undefined] });
+  const atualizarLocais = () => queryClient.invalidateQueries({ queryKey: ['locais', 'list', undefined] });
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
@@ -406,6 +420,9 @@ const BudgetsPage: React.FC = () => {
               orcamento={selectedOrcamento ?? undefined}
               onSuccess={handleFormSuccess}
               onCancel={handleModalClose}
+              locais={locais}
+              atualizarClientes={atualizarClientes}
+              atualizarLocais={atualizarLocais}
             />
           </div>
         </Modal>

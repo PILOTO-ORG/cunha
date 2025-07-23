@@ -1,3 +1,23 @@
+// ...existing code...
+exports.listarProdutosEstoqueBaixo = async (req, res, next) => {
+  try {
+    // Lógica mínima: retorna todos produtos com quantidade_total <= 10
+    const result = await pool.query('SELECT * FROM erp.produtos WHERE quantidade_total <= $1', [10]);
+    res.json(result.rows);
+  } catch (err) { next(err); }
+};
+
+exports.verificarDisponibilidadeProduto = async (req, res, next) => {
+  try {
+    // Lógica mínima: retorna produto e campo fictício de disponibilidade
+    const { id_produto } = req.query;
+    if (!id_produto) return res.status(400).json({ error: 'id_produto é obrigatório' });
+    const result = await pool.query('SELECT * FROM erp.produtos WHERE id_produto = $1', [id_produto]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Produto não encontrado' });
+    // Exemplo: sempre disponível
+    res.json({ ...result.rows[0], disponibilidade: true });
+  } catch (err) { next(err); }
+};
 const pool = require('../db');
 
 exports.listarProdutos = async (req, res, next) => {

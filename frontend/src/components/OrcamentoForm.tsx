@@ -10,7 +10,8 @@ interface OrcamentoFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   locais: any[];
-  onLocaisAtualizados?: (locais: any[]) => void;
+  atualizarClientes?: () => void;
+  atualizarLocais?: () => void;
 }
 
 interface ItemOrcamento {
@@ -18,17 +19,21 @@ interface ItemOrcamento {
   quantidade: number;
 }
 
-const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onCancel, locais, onLocaisAtualizados }) => {
+const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onCancel, locais, atualizarClientes, atualizarLocais }) => {
   // Estado para busca de produto por item
   const [buscasLocais, setBuscasLocais] = useState<string[]>([]);
   const [frete, setFrete] = useState(0);
   const [desconto, setDesconto] = useState(0);
-  const [id_local, setIdLocal] = useState(0);
+  const [id_local, setIdLocal] = useState(orcamento?.id_local || 0);
   // Modal de cadastro rápido
   const [showNovoCliente, setShowNovoCliente] = useState(false);
   const [novoCliente, setNovoCliente] = useState({ nome: '', telefone: '', email: '', cpf_cnpj: '' });
   const [showNovoLocal, setShowNovoLocal] = useState(false);
   const [novoLocal, setNovoLocal] = useState({ descricao: '', endereco: '', capacidade: '', tipo: '' });
+  // Para armazenar o id do local recém-criado
+  const [novoIdLocal, setNovoIdLocal] = useState<number | null>(null);
+  // Para armazenar o id do cliente recém-criado
+  const [novoIdCliente, setNovoIdCliente] = useState<number | null>(null);
   // ...existing code...
   // Importação do serviço de orçamento
   // Se não existir, crie em src/services/OrcamentoService.ts
@@ -42,7 +47,21 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
   useEffect(() => {
     setClientes(clientesData?.data || []);
   }, [clientesData]);
-  // Locais agora vêm por props
+  // Seleciona automaticamente o local recém-criado quando a lista de locais muda
+  React.useEffect(() => {
+    if (novoIdLocal && locais.some(l => l.id_local === novoIdLocal)) {
+      setIdLocal(novoIdLocal);
+      setNovoIdLocal(null);
+    }
+  }, [locais, novoIdLocal]);
+
+  // Seleciona automaticamente o cliente recém-criado quando a lista de clientes muda
+  React.useEffect(() => {
+    if (novoIdCliente && clientes.some(c => c.id_cliente === novoIdCliente)) {
+      setIdCliente(novoIdCliente);
+      setNovoIdCliente(null);
+    }
+  }, [clientes, novoIdCliente]);
 
   const [id_cliente, setIdCliente] = useState(orcamento?.id_cliente || 0);
   const [data_inicio, setDataInicio] = useState(orcamento?.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
@@ -123,24 +142,31 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
       return;
     }
     try {
-      // Chamada à API para salvar orçamento
-      const payload = {
+      // Chamada à API para salvar orçamento (múltiplos itens)
+      const itensPayload = itens.map(item => ({
         id_cliente,
+        id_local,
         data_inicio,
         data_fim,
-        observacoes,
-        itens,
-      };
-      // Se não existir, crie src/services/OrcamentoService.ts com método salvarOrcamento
-      const response = await fetch('/api/orcamentos', {
+        id_produto: item.id_produto,
+        quantidade: item.quantidade,
+        status: 'iniciada',
+        observacoes
+      }));
+      const response = await fetch('http://localhost:4000/reservas/orcamento-multiplo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ itens: itensPayload }),
       });
       if (!response.ok) {
         throw new Error('Erro ao salvar orçamento');
+      }
+      // Corrige o id_reserva de todos os itens para o id_reserva retornado
+      const data = await response.json();
+      if (data && data.id_reserva) {
+        data.data?.forEach((item: any) => { item.id_reserva = data.id_reserva; });
       }
       onSuccess();
     } catch (err: any) {
@@ -200,7 +226,8 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                       .then(r => r.json())
                       .then(data => {
                         setClientes(data?.data || []);
-                        setIdCliente(novo.data?.id_cliente || 0);
+                        setNovoIdCliente(novo.data?.id_cliente || 0);
+                        if (atualizarClientes) atualizarClientes();
                       });
                   }
                 }}>Salvar</Button>
@@ -225,7 +252,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
           required
         >
           <option value={0}>Selecione</option>
-          {props.locais.map(local => (
+          {locais.map(local => (
             <option key={local.id_local} value={local.id_local}>
               {local.descricao || local.nome}
             </option>
@@ -257,8 +284,9 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                     fetch('http://localhost:4000/locais')
                       .then(r => r.json())
                       .then(data => {
-                        if (onLocaisAtualizados) onLocaisAtualizados(data?.data || []);
-                        setIdLocal(novo.data?.id_local || 0);
+                        // Atualização automática: seleciona o novo local quando a lista de locais recebida por prop for atualizada
+                        setNovoIdLocal(novo.data?.id_local || 0);
+                        if (atualizarLocais) atualizarLocais();
                       });
                   }
                 }}>Salvar</Button>

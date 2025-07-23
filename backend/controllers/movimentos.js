@@ -47,11 +47,40 @@ exports.atualizarMovimento = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+
 exports.removerMovimento = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await pool.query('DELETE FROM erp.movimentos WHERE id_evento = $1 RETURNING *', [id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Movimento não encontrado' });
     res.json({ success: true });
+  } catch (err) { next(err); }
+};
+
+// Funções mínimas para rotas extras
+exports.buscarMovimentosPorProduto = async (req, res, next) => {
+  try {
+    const { id_produto } = req.query;
+    if (!id_produto) return res.status(400).json({ error: 'id_produto é obrigatório' });
+    const result = await pool.query('SELECT * FROM erp.movimentos WHERE id_produto = $1', [id_produto]);
+    res.json(result.rows);
+  } catch (err) { next(err); }
+};
+
+exports.buscarMovimentosPorTipo = async (req, res, next) => {
+  try {
+    const { tipo_evento } = req.query;
+    if (!tipo_evento) return res.status(400).json({ error: 'tipo_evento é obrigatório' });
+    const result = await pool.query('SELECT * FROM erp.movimentos WHERE tipo_evento = $1', [tipo_evento]);
+    res.json(result.rows);
+  } catch (err) { next(err); }
+};
+
+exports.buscarMovimentosPorPeriodo = async (req, res, next) => {
+  try {
+    const { data_inicio, data_fim } = req.query;
+    if (!data_inicio || !data_fim) return res.status(400).json({ error: 'data_inicio e data_fim são obrigatórios' });
+    const result = await pool.query('SELECT * FROM erp.movimentos WHERE data_evento >= $1 AND data_evento <= $2', [data_inicio, data_fim]);
+    res.json(result.rows);
   } catch (err) { next(err); }
 };

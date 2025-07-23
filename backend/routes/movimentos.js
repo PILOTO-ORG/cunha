@@ -1,11 +1,14 @@
+
 const express = require('express');
 const router = express.Router();
 const movimentosController = require('../controllers/movimentos');
 
+router.get('/buscar-produto', movimentosController.buscarMovimentosPorProduto);
+router.get('/buscar-tipo', movimentosController.buscarMovimentosPorTipo);
+router.get('/buscar-periodo', movimentosController.buscarMovimentosPorPeriodo);
 router.get('/', movimentosController.listarMovimentos);
-router.get('/:id', movimentosController.buscarMovimento);
 router.post('/', movimentosController.criarMovimento);
-router.put('/:id', movimentosController.atualizarMovimento);
+router.get('/:id', movimentosController.buscarMovimento);
 router.delete('/:id', movimentosController.removerMovimento);
 
 module.exports = router;
