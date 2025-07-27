@@ -35,6 +35,7 @@ export interface Reserva {
   status: 'ativa' | 'concluída' | 'cancelada' | 'iniciada'; // 'iniciada' representa orçamentos
   id_produto: number;
   quantidade: number;
+  link_drive?: string; // Adicionando o novo campo
   // Campos populados via JOIN (não existem no banco)
   cliente?: Cliente;
   local?: Local;
@@ -145,6 +146,7 @@ export interface AtualizarReservaRequest {
   data_fim?: string;
   status?: 'ativa' | 'concluída' | 'cancelada' | 'iniciada';
   quantidade?: number;
+  link_drive?: string; 
 }
 
 export interface CriarMovimentoRequest {

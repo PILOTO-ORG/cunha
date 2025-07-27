@@ -23,6 +23,15 @@ import type {
 
 export class ReservaService {
   /**
+   * Atualiza o campo link_drive de todos os itens de uma reserva
+   * @param id_reserva - ID do grupo de reserva
+   * @param link_drive - Link do Google Drive
+   */
+  static async atualizarLinkDrive(id_reserva: number, link_drive: string): Promise<any> {
+    const response = await apiClient.put('/reservas/atualizar-link-drive', { id_reserva, link_drive });
+    return response.data;
+  }
+  /**
    * Lista todas as reservas com filtros opcionais
    * 
    * @param filtros - Filtros de busca e paginação

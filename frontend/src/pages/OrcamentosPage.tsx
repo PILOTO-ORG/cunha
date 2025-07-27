@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import Table from '../components/ui/Table.tsx';
 import Button from '../components/ui/Button.tsx';
@@ -13,6 +15,70 @@ import { useLocais } from '../hooks/useLocais.ts';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Reserva, Cliente, Produto, Local } from '../types/api';
 import { formatDateTime, formatCurrency } from '../utils/formatters.ts';
+// Adicione o import do ReservaService
+import ReservaService from '../services/reservaService.ts';
+
+// Removido: buscarReservaAgrupada
+
+// Função utilitária para montar o payload do orçamento
+
+// Função para imprimir orçamento (sem request adicional)
+async function imprimirOrcamento(orcamento: OrcamentoAgrupado, clientes: Cliente[], locais: Local[], produtos: Produto[]) {
+  // Se já existe link_drive, abre direto
+  if (orcamento.link_drive) {
+    window.open(orcamento.link_drive, '_blank');
+    return;
+  }
+  console.log('Gerando planilha para orçamento', orcamento);
+  // Se não houver link_drive, gera planilha e salva
+  const cliente = clientes.find(c => c.id_cliente === orcamento.id_cliente);
+  const local = locais.length > 0 ? locais[0] : undefined;
+  const itensDetalhados = orcamento.itens.map(item => {
+    const produto = produtos.find(p => p.id_produto === item.id_produto);
+    return {
+      ...item,
+      produto_nome: produto?.nome || item.produto_nome,
+      produto_valor_locacao: produto?.valor_locacao || item.valor_unitario || 0,
+    };
+  });
+  const payload = {
+    id_reserva: orcamento.id_reserva,
+    data_inicio: orcamento.data_inicio,
+    data_fim: orcamento.data_fim,
+    status: orcamento.status,
+    valor_total: orcamento.valor_total,
+    observacoes: orcamento.observacoes,
+    cliente: cliente ? {
+      id_cliente: cliente.id_cliente,
+      nome: cliente.nome,
+      email: cliente.email,
+      telefone: cliente.telefone,
+    } : {},
+    local: local ? {
+      id_local: local.id_local,
+      endereco: local.endereco,
+      capacidade: local.capacidade,
+    } : {},
+    itens: itensDetalhados,
+  };
+  const resp = await fetch('https://n8n.piloto.live/webhook/cunha-drive', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) throw new Error('Erro ao gerar planilha');
+  const data = await resp.json();
+  if (data.link) {
+    const url = `https://drive.google.com/file/d/${data.link}/view`;
+    window.open(url, '_blank');
+    await ReservaService.atualizarLinkDrive(Number(orcamento.id_reserva), url);
+    // Atualiza a página para refletir o novo link_drive
+    window.location.reload();
+  } else {
+    alert('Erro ao obter link da planilha');
+  }
+}
+
 
 // Tipo para orçamento agrupado
 interface OrcamentoAgrupado {
@@ -31,6 +97,7 @@ interface OrcamentoAgrupado {
   }[];
   valor_total: number;
   observacoes?: string;
+  link_drive?: string;
 }
 
 const BudgetsPage: React.FC = () => {
@@ -93,11 +160,9 @@ const BudgetsPage: React.FC = () => {
   // Agrupar orçamentos por id_reserva
   const orcamentosAgrupados = useMemo(() => {
     const grupos = new Map<number, OrcamentoAgrupado>();
-    
     reservas.forEach(reserva => {
       const cliente = clientesMap.get(reserva.id_cliente || 0);
       const produto = produtosMap.get(reserva.id_produto);
-      
       if (!grupos.has(reserva.id_reserva)) {
         grupos.set(reserva.id_reserva, {
           id_reserva: reserva.id_reserva,
@@ -108,13 +173,12 @@ const BudgetsPage: React.FC = () => {
           status: reserva.status,
           itens: [],
           valor_total: 0,
-          observacoes: reserva.observacoes
+          observacoes: reserva.observacoes,
+          link_drive: reserva.link_drive // <-- Adiciona o campo link_drive
         });
       }
-      
       const grupo = grupos.get(reserva.id_reserva)!;
       const valorItem = calcularValorItem(produto, reserva.quantidade, reserva.data_inicio, reserva.data_fim);
-      
       grupo.itens.push({
         id_item_reserva: reserva.id_item_reserva,
         id_produto: reserva.id_produto,
@@ -122,10 +186,12 @@ const BudgetsPage: React.FC = () => {
         quantidade: reserva.quantidade,
         valor_unitario: produto?.valor_locacao || 0
       });
-      
       grupo.valor_total += valorItem;
+      // Se algum item tiver link_drive, garante que o agrupado tenha o link
+      if (reserva.link_drive && !grupo.link_drive) {
+        grupo.link_drive = reserva.link_drive;
+      }
     });
-    
     return Array.from(grupos.values());
   }, [reservas, clientesMap, produtosMap]);
 
@@ -212,11 +278,6 @@ const BudgetsPage: React.FC = () => {
   }
 
   const columns = [
-    {
-      header: 'ID Reserva',
-      accessor: 'id_reserva' as keyof OrcamentoAgrupado,
-      className: 'w-20'
-    },
     {
       header: 'Cliente',
       accessor: (orcamento: OrcamentoAgrupado) => orcamento.cliente_nome,
@@ -306,6 +367,21 @@ const BudgetsPage: React.FC = () => {
           >
             🗑️
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              try {
+                await imprimirOrcamento(orcamento, clientes, locais, produtos);
+              } catch (e) {
+                alert('Erro ao imprimir orçamento: ' + (e as Error).message);
+              }
+            }}
+            className="p-1.5 text-blue-600 hover:text-blue-700"
+            title="Imprimir Orçamento"
+          >
+            🖨️
+          </Button>
           {orcamento.status === 'iniciada' && (
             <Button
               size="sm"
@@ -325,7 +401,7 @@ const BudgetsPage: React.FC = () => {
           )}
         </div>
       ),
-      className: 'w-32'
+      className: 'w-40'
     }
   ];
 

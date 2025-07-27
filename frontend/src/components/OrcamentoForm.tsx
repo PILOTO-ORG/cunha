@@ -5,14 +5,33 @@ import Input from './ui/Input.tsx';
 import { useProdutos } from '../hooks/useProdutos.ts';
 import { useClientes } from '../hooks/useClientes.ts';
 
-interface OrcamentoFormProps {
-  orcamento?: Reserva;
+// Permite receber tanto Reserva (um item) quanto OrcamentoAgrupado (múltiplos itens)
+interface OrcamentoAgrupado {
+  id_reserva: number;
+  id_cliente: number;
+  cliente_nome: string;
+  data_inicio: string;
+  data_fim: string;
+  status: string;
+  itens: {
+    id_item_reserva: number;
+    id_produto: number;
+    produto_nome: string;
+    quantidade: number;
+    valor_unitario?: number;
+  }[];
+  valor_total: number;
+  observacoes?: string;
+}
+
+type OrcamentoFormProps = {
+  orcamento?: Reserva | OrcamentoAgrupado;
   onSuccess: () => void;
   onCancel: () => void;
   locais: any[];
   atualizarClientes?: () => void;
   atualizarLocais?: () => void;
-}
+};
 
 interface ItemOrcamento {
   id_produto: number;
@@ -63,12 +82,17 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
     }
   }, [clientes, novoIdCliente]);
 
-  const [id_cliente, setIdCliente] = useState(orcamento?.id_cliente || 0);
-  const [data_inicio, setDataInicio] = useState(orcamento?.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
-  const [data_fim, setDataFim] = useState(orcamento?.data_fim ? orcamento.data_fim.split('T')[0] : '');
-  const [observacoes, setObservacoes] = useState(orcamento?.observacoes || '');
+  // Suporte a múltiplos itens (OrcamentoAgrupado)
+  const [id_cliente, setIdCliente] = useState(orcamento ? ('itens' in orcamento ? orcamento.id_cliente : orcamento.id_cliente) : 0);
+  const [data_inicio, setDataInicio] = useState(orcamento ? ('itens' in orcamento ? orcamento.data_inicio.split('T')[0] : orcamento.data_inicio?.split('T')[0] ?? '') : '');
+  const [data_fim, setDataFim] = useState(orcamento ? ('itens' in orcamento ? orcamento.data_fim.split('T')[0] : orcamento.data_fim?.split('T')[0] ?? '') : '');
+  const [observacoes, setObservacoes] = useState(orcamento ? ('itens' in orcamento ? orcamento.observacoes || '' : orcamento.observacoes || '') : '');
   const [itens, setItens] = useState<ItemOrcamento[]>(
-    orcamento ? [{ id_produto: orcamento.id_produto, quantidade: orcamento.quantidade }] : []
+    orcamento
+      ? ('itens' in orcamento
+          ? orcamento.itens.map(i => ({ id_produto: i.id_produto, quantidade: i.quantidade }))
+          : [{ id_produto: orcamento.id_produto, quantidade: orcamento.quantidade }])
+      : []
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,11 +130,19 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
 
   useEffect(() => {
     if (orcamento) {
-      setIdCliente(orcamento.id_cliente || 0);
-      setDataInicio(orcamento.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
-      setDataFim(orcamento.data_fim ? orcamento.data_fim.split('T')[0] : '');
-      setObservacoes(orcamento.observacoes || '');
-      setItens([{ id_produto: orcamento.id_produto, quantidade: orcamento.quantidade }]);
+      if ('itens' in orcamento) {
+        setIdCliente(orcamento.id_cliente || 0);
+        setDataInicio(orcamento.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
+        setDataFim(orcamento.data_fim ? orcamento.data_fim.split('T')[0] : '');
+        setObservacoes(orcamento.observacoes || '');
+        setItens(orcamento.itens.map(i => ({ id_produto: i.id_produto, quantidade: i.quantidade })));
+      } else {
+        setIdCliente(orcamento.id_cliente || 0);
+        setDataInicio(orcamento.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
+        setDataFim(orcamento.data_fim ? orcamento.data_fim.split('T')[0] : '');
+        setObservacoes(orcamento.observacoes || '');
+        setItens([{ id_produto: orcamento.id_produto, quantidade: orcamento.quantidade }]);
+      }
     }
   }, [orcamento]);
 

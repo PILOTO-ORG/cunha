@@ -1,3 +1,23 @@
+// Atualiza o campo link_drive de todos os itens de uma reserva
+exports.atualizarLinkDrive = async (req, res, next) => {
+  try {
+    let { id_reserva, link_drive } = req.body;
+    id_reserva = Number(id_reserva);
+    if (!id_reserva || !link_drive) {
+      return res.status(400).json({ success: false, message: 'id_reserva e link_drive são obrigatórios.' });
+    }
+    const result = await pool.query(
+      'UPDATE erp.reservas SET link_drive = $1 WHERE id_reserva = $2 RETURNING *',
+      [link_drive, id_reserva]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Nenhum item de reserva encontrado para atualizar.' });
+    }
+    res.json({ success: true, message: 'link_drive atualizado', data: result.rows });
+  } catch (err) {
+    next(err);
+  }
+};
 // Atualizar orçamento múltiplo (todos os itens de um id_reserva)
 exports.atualizarOrcamentoMultiplo = async (req, res, next) => {
   try {
@@ -49,12 +69,24 @@ exports.listarReservas = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// Busca reserva por id_item_reserva (original)
 exports.buscarReserva = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM erp.reservas WHERE id_item_reserva = $1', [id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Reserva não encontrada' });
     res.json(result.rows[0]);
+  } catch (err) { next(err); }
+};
+
+// Busca reserva por id_reserva (novo endpoint para orçamentos agrupados)
+exports.buscarReservaPorIdReserva = async (req, res, next) => {
+  try {
+    const { id_reserva } = req.params;
+    const result = await pool.query('SELECT * FROM erp.reservas WHERE id_reserva = $1', [id_reserva]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Reserva não encontrada' });
+    // Retorna todos os itens da reserva agrupada
+    res.json(result.rows);
   } catch (err) { next(err); }
 };
 
