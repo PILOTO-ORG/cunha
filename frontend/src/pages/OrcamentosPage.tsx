@@ -281,39 +281,39 @@ const BudgetsPage: React.FC = () => {
     {
       header: 'Cliente',
       accessor: (orcamento: OrcamentoAgrupado) => orcamento.cliente_nome,
-      className: 'min-w-[200px]'
+      className: 'min-w-[120px]'
     },
     {
       header: 'Itens',
       accessor: (orcamento: OrcamentoAgrupado) => (
         <div className="space-y-2">
           {orcamento.itens.map((item, index) => (
-            <div key={item.id_item_reserva} className="text-sm border-l-2 border-blue-200 pl-2">
-              <div className="font-medium text-gray-900">{item.produto_nome}</div>
-              <div className="text-gray-500 flex justify-between">
+            <div key={item.id_item_reserva} className="text-sm border-l-2 border-blue-200 pl-2 break-words">
+              <div className="font-medium text-gray-900 break-words">{item.produto_nome}</div>
+              <div className="text-gray-500 flex flex-col sm:flex-row sm:justify-between break-words">
                 <span>Qtd: {item.quantidade}</span>
                 <span>{formatCurrency(item.valor_unitario || 0)}/dia</span>
               </div>
             </div>
           ))}
           {orcamento.itens.length > 1 && (
-            <div className="text-xs text-gray-400 pt-1 border-t">
+            <div className="text-xs text-gray-400 pt-1 border-t break-words">
               Total de {orcamento.itens.length} itens
             </div>
           )}
         </div>
       ),
-      className: 'min-w-[280px]'
+      className: 'min-w-[160px]'
     },
     {
       header: 'Data Início',
       accessor: (orcamento: OrcamentoAgrupado) => formatDateTime(orcamento.data_inicio),
-      className: 'min-w-[140px]'
+      className: 'min-w-[100px]'
     },
     {
       header: 'Data Fim',
       accessor: (orcamento: OrcamentoAgrupado) => formatDateTime(orcamento.data_fim),
-      className: 'min-w-[140px]'
+      className: 'min-w-[100px]'
     },
     {
       header: 'Valor Total',
@@ -322,17 +322,15 @@ const BudgetsPage: React.FC = () => {
           {formatCurrency(orcamento.valor_total)}
         </span>
       ),
-      className: 'min-w-[120px] text-right'
-    },
-    {
-      header: 'Status',
-      accessor: (orcamento: OrcamentoAgrupado) => getStatusBadge(orcamento.status),
-      className: 'w-24'
+      className: 'min-w-[80px] text-right'
     },
     {
       header: 'Ações',
       accessor: (orcamento: OrcamentoAgrupado) => (
-        <div className="flex space-x-1">
+        <div
+          className="flex flex-wrap gap-1 justify-start items-center min-w-[100px] sm:min-w-[80px] md:min-w-[60px]"
+          style={{ rowGap: '0.25rem' }}
+        >
           <Button
             size="sm"
             variant="outline"
@@ -343,7 +341,8 @@ const BudgetsPage: React.FC = () => {
                 handleEditOrcamento(primeiraReserva);
               }
             }}
-            className="p-1.5"
+            className="p-1 min-w-[28px]"
+            aria-label="Editar orçamento"
           >
             ✏️
           </Button>
@@ -363,7 +362,8 @@ const BudgetsPage: React.FC = () => {
                 refetch();
               }
             }}
-            className="p-1.5 text-red-600 hover:text-red-700"
+            className="p-1 text-red-600 hover:text-red-700 min-w-[28px]"
+            aria-label="Excluir orçamento"
           >
             🗑️
           </Button>
@@ -377,8 +377,9 @@ const BudgetsPage: React.FC = () => {
                 alert('Erro ao imprimir orçamento: ' + (e as Error).message);
               }
             }}
-            className="p-1.5 text-blue-600 hover:text-blue-700"
+            className="p-1 text-blue-600 hover:text-blue-700 min-w-[28px]"
             title="Imprimir Orçamento"
+            aria-label="Imprimir orçamento"
           >
             🖨️
           </Button>
@@ -393,15 +394,16 @@ const BudgetsPage: React.FC = () => {
                   handleConvertToReserva(primeiraReserva);
                 }
               }}
-              className="p-1.5 text-xs"
+              className="p-1 text-xs min-w-[28px]"
               title="Converter para Reserva"
+              aria-label="Converter para reserva"
             >
               📅
             </Button>
           )}
         </div>
       ),
-      className: 'w-40'
+      className: 'w-28 sm:w-24 md:w-20'
     }
   ];
 
@@ -411,26 +413,28 @@ const BudgetsPage: React.FC = () => {
   const atualizarLocais = () => queryClient.invalidateQueries({ queryKey: ['locais', 'list', undefined] });
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Orçamentos</h1>
+    <div className="container mx-auto px-1 sm:px-4 py-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+        <div className="w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orçamentos</h1>
           {!isLoading && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
               {orcamentosAgrupados.length} orçamento(s) encontrado(s) • 
               {reservas.length} item(s) total • 
               Valor total: {formatCurrency(orcamentosAgrupados.reduce((sum, orc) => sum + orc.valor_total, 0))}
             </p>
           )}
         </div>
-        <Button onClick={handleCreateOrcamento} className="flex items-center space-x-2">
-          ➕
-          <span>Novo Orçamento</span>
-        </Button>
+        <div className="w-full sm:w-auto flex justify-end">
+          <Button onClick={handleCreateOrcamento} className="flex items-center space-x-2 w-full sm:w-auto">
+            ➕
+            <span>Novo Orçamento</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filtros */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="relative">
           <Input
             type="text"
@@ -470,7 +474,7 @@ const BudgetsPage: React.FC = () => {
             Limpar Filtros
           </Button>
         </div>
-      </div>
+      </div> */}
 
       {isLoading ? (
         <div className="flex justify-center items-center py-12">
@@ -478,18 +482,22 @@ const BudgetsPage: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <Table
-            data={orcamentosAgrupados}
-            columns={columns}
-            emptyMessage="Nenhum orçamento encontrado. Crie seu primeiro orçamento clicando no botão 'Novo Orçamento'."
-          />
+          <div className="w-full">
+            <div className="w-full">
+              <Table
+                data={orcamentosAgrupados}
+                columns={columns}
+                emptyMessage="Nenhum orçamento encontrado. Crie seu primeiro orçamento clicando no botão 'Novo Orçamento'."
+              />
+            </div>
+          </div>
         </div>
       )}
 
       {showModal && (
         <Modal isOpen={showModal} onClose={handleModalClose} size="xl">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
               {selectedOrcamento ? 'Editar Orçamento' : 'Novo Orçamento'}
             </h2>
             <OrcamentoForm

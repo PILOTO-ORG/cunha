@@ -44,7 +44,7 @@ const HomePage: React.FC = () => {
     {
       title: 'Orçamentos Pendentes',
       value: dashboardIndicators.data.orcamentos_pendentes ?? '-',
-      icon: '�',
+      icon: '📄',
       color: 'yellow' as 'yellow',
     },
     {
@@ -56,13 +56,13 @@ const HomePage: React.FC = () => {
     {
       title: 'Viagens Hoje',
       value: dashboardIndicators.data.viagens_hoje ?? '-',
-      icon: '�',
+      icon: '🚌',
       color: 'green' as 'green',
     },
     {
       title: 'Total de Clientes',
       value: dashboardIndicators.data.total_clientes ?? '-',
-      icon: '�',
+      icon: '👥',
       color: 'indigo' as 'indigo',
     },
     {
@@ -74,7 +74,7 @@ const HomePage: React.FC = () => {
     {
       title: 'Total de Produtos Diferentes',
       value: dashboardIndicators.data.total_produtos ?? '-',
-      icon: '�',
+      icon: '📦',
       color: 'blue' as 'blue',
     },
     {
@@ -168,95 +168,54 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-
-                      {/* Navigation Cards */}
-        <div className="">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-              name: 'Produtos',
-              description: 'Gerencie o catálogo e estoque',
-              icon: '🛒',
-              path: '/produtos',
-              color: 'bg-blue-500'
-              },
-              {
-              name: 'Clientes',
-              description: 'Cadastro e histórico de clientes',
-              icon: '👥',
-              path: '/clientes',
-              color: 'bg-green-500'
-              },
-              {
-              name: 'Orçamentos',
-              description: 'Criação e aprovação de orçamentos',
-              icon: '📊',
-              path: '/orcamentos',
-              color: 'bg-yellow-500'
-              },
-              {
-              name: 'Reservas',
-              description: 'Controle de reservas e eventos',
-              icon: '📅',
-              path: '/reservas',
-              color: 'bg-purple-500'
-              }
-            ].map((module) => (
-              <Link
-              key={module.name}
-              to={module.path}
-              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
-              >
-              <div className="flex items-center space-x-4">
-                <div className={`${module.color} p-3 rounded-lg group-hover:scale-105 transition-transform`}>
-                <span className="text-xl text-white">{module.icon}</span>
-                </div>
-                <div>
-                <h3 className="font-medium text-gray-900">{module.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{module.description}</p>
-                </div>
-              </div>
-              </Link>
-            ))}
+          <div className="w-full max-w-7xl px-4 sm:px-8 py-10 mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+              {[ 
+                {
+                  name: 'Produtos',
+                  description: 'Gerencie o catálogo e estoque',
+                  icon: '🛒',
+                  path: '/produtos',
+                  color: 'bg-blue-500'
+                },
+                {
+                  name: 'Clientes',
+                  description: 'Cadastro e histórico de clientes',
+                  icon: '👥',
+                  path: '/clientes',
+                  color: 'bg-green-500'
+                },
+                {
+                  name: 'Orçamentos',
+                  description: 'Criação e aprovação de orçamentos',
+                  icon: '📊',
+                  path: '/orcamentos',
+                  color: 'bg-yellow-500'
+                },
+                {
+                  name: 'Reservas',
+                  description: 'Controle de reservas e eventos',
+                  icon: '📅',
+                  path: '/reservas',
+                  color: 'bg-purple-500'
+                }
+              ].map((module) => (
+                <Link
+                  key={module.name}
+                  to={module.path}
+                  className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow group flex flex-col items-center justify-center text-center"
+                >
+                  <div className={`${module.color} p-5 rounded-full mb-4 group-hover:scale-110 transition-transform flex items-center justify-center`}>
+                    <span className="text-3xl text-white">{module.icon}</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-lg mb-2">{module.name}</h3>
+                  <p className="text-sm text-gray-500">{module.description}</p>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      <div className="">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            {/* <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Painel de Gestão
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Bem-vindo ao sistema de locação de itens para eventos
-              </p>
-            </div> */}
-            {/* <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowAIAssistant(true)}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
-              >
-                <span className="text-lg">🤖</span>
-                <span>Nanda IA</span>
-              </button>
-              <Link
-                to="/nanda"
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-              >
-                Sobre a Nanda →
-              </Link>
-            </div> */}
-          </div>
-        </div>
-
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        
-        {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {dashboardData.map((card, index) => (
             <DashboardCard
               key={index}
@@ -273,66 +232,12 @@ const HomePage: React.FC = () => {
             />
           ))}
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
-          {/* <div className="lg:col-span-1">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
-            <div className="space-y-3">
-              {quickActions.map((action, index) => (
-                <QuickAction
-                  key={index}
-                  title={action.title}
-                  description={action.description}
-                  icon={action.icon}
-                  color={action.color}
-                  onClick={action.onClick}
-                />
-              ))}
-            </div>
-          </div> */}
-
-          {/* Recent Activity */}
-          {/* <div className="lg:col-span-2">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Atividade Recente</h2>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="divide-y divide-gray-200">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start space-x-3">
-                      <div className={`p-2 rounded-full ${getStatusColor(activity.status)}`}>
-                        <span className="text-sm">{getActivityIcon(activity.type)}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          {activity.description}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {activity.time}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 bg-gray-50 rounded-b-lg">
-                <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
-                  Ver todas as atividades →
-                </button>
-              </div>
-            </div>
-          </div> */}
-        </div>
-
-
       </div>
-
-      {/* AI Assistant Modal */}
       <AIAssistant 
         isOpen={showAIAssistant} 
         onClose={() => setShowAIAssistant(false)} 
       />
-    </div>
+        </div>
   );
 };
 
