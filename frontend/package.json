@@ -16,6 +16,8 @@
     "autoprefixer": "^10.4.17",
     "axios": "^1.6.7",
     "date-fns": "^3.3.1",
+    "express-rate-limit": "^8.0.1",
+    "express-validator": "^7.2.1",
     "postcss": "^8.4.33",
     "react": "^18.2.0",
     "react-datepicker": "^4.25.0",

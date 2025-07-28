@@ -223,14 +223,11 @@ export interface OrcamentoFilter extends PaginationParams {
 // Dashboard types
 export interface DashboardData {
   reservas_ativas: number;
+  faturamento_mensal: number;
   produtos_disponiveis: number;
-  total_clientes: number;
-  movimentos_hoje: number;
-  estoque_baixo: number;
-  tendencia_reservas: {
-    valor: number;
-    positiva: boolean;
-  };
+  clientes_ativos: number;
+  orcamentos_pendentes: number;
+  alertas_estoque: number;
 }
 
 // Pagination types

@@ -21,7 +21,7 @@ export class DashboardService {
    * @returns Promise com dados do dashboard
    */
   static async obterDadosDashboard(): Promise<DashboardData> {
-    const response = await apiClient.get<DashboardData>('obter_dados_dashboard');
+    const response = await apiClient.get<DashboardData>('/dashboard');
     console.log('[DashboardService] obterDadosDashboard response:', response.data);
     return response.data;
   }

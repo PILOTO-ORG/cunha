@@ -1,5 +1,32 @@
+declare const process: {
+  env: {
+    REACT_APP_API_URL?: string;
+  };
+};
+// Serviço de API para frontend com JWT
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
+
+function getToken() {
+  return localStorage.getItem('jwt');
+}
+
+async function apiRequest(path, options = {}) {
+  const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+  const resp = await fetch(`${API_URL}${path}`, { ...options, headers });
+  if (resp.status === 401) {
+    window.location.href = '/login';
+    return null;
+  }
+  return resp.json();
+}
+
+export default apiRequest;
 // API Base Configuration
-const API_BASE_URL = 'http://localhost:4000';
+const API_BASE_URL = (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/api$/, '') : 'http://localhost:4000');
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -23,7 +50,9 @@ class ApiClient {
 
   private buildUrl(path: string): string {
     if (path.startsWith('http')) return path;
+    // Garante que todas rotas usem /api como prefixo
     if (!path.startsWith('/')) path = '/' + path;
+    if (!path.startsWith('/api/')) path = '/api' + path;
     return this.baseURL.replace(/\/$/, '') + path;
   }
 
@@ -42,9 +71,12 @@ class ApiClient {
       });
       url += (url.includes('?') ? '&' : '?') + searchParams.toString();
     }
+    const token = getToken();
+    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'Accept': 'application/json' }
+      headers
     });
     if (!response.ok) {
       throw new ApiError(`HTTP Error: ${response.status} - ${response.statusText}`, response.status);
@@ -55,9 +87,12 @@ class ApiClient {
 
   async post<T>(path: string, body?: any): Promise<ApiResponse<T>> {
     const url = this.buildUrl(path);
+    const token = getToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers,
       body: body ? JSON.stringify(body) : undefined
     });
     if (!response.ok) {
@@ -69,9 +104,12 @@ class ApiClient {
 
   async put<T>(path: string, body?: any): Promise<ApiResponse<T>> {
     const url = this.buildUrl(path);
+    const token = getToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers,
       body: body ? JSON.stringify(body) : undefined
     });
     if (!response.ok) {
@@ -96,9 +134,12 @@ class ApiClient {
       });
       url += (url.includes('?') ? '&' : '?') + searchParams.toString();
     }
+    const token = getToken();
+    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: { 'Accept': 'application/json' }
+      headers
     });
     if (!response.ok) {
       throw new ApiError(`HTTP Error: ${response.status} - ${response.statusText}`, response.status);
@@ -124,4 +165,4 @@ export class ApiError extends Error {
   }
 }
 
-export default apiClient;
+

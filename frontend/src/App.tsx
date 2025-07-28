@@ -1,5 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute.tsx';
+import LoginPage from './pages/LoginPage.tsx';
+// import RelatoriosPage from './pages/RelatoriosPage'; // Removido pois não existe
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import './styles/index.css';
@@ -50,23 +53,17 @@ function App() {
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/produtos" element={<ProductsPage />} />
-            <Route path="/clientes" element={<ClientsPage />} />
-            <Route path="/orcamentos" element={<BudgetsPage />} />
-            <Route path="/reservas" element={<ReservasPage />} />
-            <Route path="/locais" element={<LocaisPage />} />
-            <Route path="/movimentos" element={<MovimentosPage />} />
-            <Route path="/relatorios" element={
-              <div className="container mx-auto px-4 py-8">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                  <h2 className="text-xl font-semibold text-blue-800 mb-2">Relatórios</h2>
-                  <p className="text-blue-600">Funcionalidade em desenvolvimento</p>
-                </div>
-              </div>
-            } />
-            <Route path="/nanda" element={<NandaPage />} />
-            <Route path="*" element={<NotFoundPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                <Route path="/produtos" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+                <Route path="/clientes" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
+                <Route path="/orcamentos" element={<ProtectedRoute><BudgetsPage /></ProtectedRoute>} />
+                <Route path="/reservas" element={<ProtectedRoute><ReservasPage /></ProtectedRoute>} />
+                <Route path="/locais" element={<ProtectedRoute><LocaisPage /></ProtectedRoute>} />
+                <Route path="/movimentos" element={<ProtectedRoute><MovimentosPage /></ProtectedRoute>} />
+                {/* <Route path="/relatorios" element={<ProtectedRoute><RelatoriosPage /></ProtectedRoute>} /> */}
+                <Route path="/nanda" element={<ProtectedRoute><NandaPage /></ProtectedRoute>} />
+                <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>
       </Router>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import DashboardService from '../services/dashboardService.ts';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardCard from '../components/DashboardCard.tsx';
 import QuickAction from '../components/QuickAction.tsx';
@@ -8,49 +9,81 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [showAIAssistant, setShowAIAssistant] = useState(false);
 
-  // Mock data para o dashboard
-  const dashboardData = [
+
+  // Novo estado para indicadores do dashboard
+  const [dashboardIndicators, setDashboardIndicators] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    DashboardService.obterDadosDashboard()
+      .then(data => {
+        setDashboardIndicators(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message || 'Erro ao carregar dashboard');
+        setLoading(false);
+      });
+  }, []);
+
+  const dashboardData = dashboardIndicators && dashboardIndicators.data ? [
     {
-      title: 'Reservas Ativas',
-      value: '47',
-      icon: '📅',
-      color: 'blue' as const,
-      trend: { value: 12, isPositive: true }
+      title: 'Reservas que Acabam Hoje',
+      value: dashboardIndicators.data.reservas_fim_hoje ?? '-',
+      icon: '⏰',
+      color: 'yellow' as 'yellow',
     },
     {
-      title: 'Faturamento Mensal',
-      value: 'R$ 45.670',
-      icon: '💰',
-      color: 'green' as const,
-      trend: { value: 8, isPositive: true }
-    },
-    {
-      title: 'Produtos Disponíveis',
-      value: '2.847',
-      icon: '📦',
-      color: 'purple' as const,
-      trend: { value: 3, isPositive: false }
-    },
-    {
-      title: 'Clientes Ativos',
-      value: '184',
-      icon: '👥',
-      color: 'indigo' as const,
-      trend: { value: 15, isPositive: true }
+      title: 'Reservas Concluídas',
+      value: dashboardIndicators.data.reservas_concluidas ?? '-',
+      icon: '✅',
+      color: 'green' as 'green',
     },
     {
       title: 'Orçamentos Pendentes',
-      value: '23',
-      icon: '📊',
-      color: 'yellow' as const,
+      value: dashboardIndicators.data.orcamentos_pendentes ?? '-',
+      icon: '�',
+      color: 'yellow' as 'yellow',
     },
     {
-      title: 'Alertas de Estoque',
-      value: '4',
+      title: 'Reservas Ativas',
+      value: dashboardIndicators.data.reservas_ativas ?? '-',
+      icon: '📅',
+      color: 'blue' as 'blue',
+    },
+    {
+      title: 'Viagens Hoje',
+      value: dashboardIndicators.data.viagens_hoje ?? '-',
+      icon: '�',
+      color: 'green' as 'green',
+    },
+    {
+      title: 'Total de Clientes',
+      value: dashboardIndicators.data.total_clientes ?? '-',
+      icon: '�',
+      color: 'indigo' as 'indigo',
+    },
+    {
+      title: 'Total de Locais',
+      value: dashboardIndicators.data.total_locais ?? '-',
+      icon: '🏢',
+      color: 'purple' as 'purple',
+    },
+    {
+      title: 'Total de Produtos Diferentes',
+      value: dashboardIndicators.data.total_produtos ?? '-',
+      icon: '�',
+      color: 'blue' as 'blue',
+    },
+    {
+      title: 'Produtos com Campos Faltando',
+      value: dashboardIndicators.data.produtos_campos_faltando ?? '-',
       icon: '⚠️',
-      color: 'red' as const,
+      color: 'red' as 'red',
     }
-  ];
+  ] : [];
 
   const quickActions = [
     {
@@ -136,110 +169,9 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Painel de Gestão
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Bem-vindo ao sistema de locação de itens para eventos
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowAIAssistant(true)}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
-              >
-                <span className="text-lg">🤖</span>
-                <span>Nanda IA</span>
-              </button>
-              <Link
-                to="/nanda"
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-              >
-                Sobre a Nanda →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {dashboardData.map((card, index) => (
-            <DashboardCard
-              key={index}
-              title={card.title}
-              value={card.value}
-              icon={card.icon}
-              color={card.color}
-              trend={card.trend}
-              onClick={() => {
-                if (card.title.includes('Reservas')) navigate('/reservas');
-                if (card.title.includes('Produtos')) navigate('/produtos');
-                if (card.title.includes('Clientes')) navigate('/clientes');
-                if (card.title.includes('Orçamentos')) navigate('/orcamentos');
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
-          <div className="lg:col-span-1">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
-            <div className="space-y-3">
-              {quickActions.map((action, index) => (
-                <QuickAction
-                  key={index}
-                  title={action.title}
-                  description={action.description}
-                  icon={action.icon}
-                  color={action.color}
-                  onClick={action.onClick}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="lg:col-span-2">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Atividade Recente</h2>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="divide-y divide-gray-200">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start space-x-3">
-                      <div className={`p-2 rounded-full ${getStatusColor(activity.status)}`}>
-                        <span className="text-sm">{getActivityIcon(activity.type)}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          {activity.description}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {activity.time}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 bg-gray-50 rounded-b-lg">
-                <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
-                  Ver todas as atividades →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Cards */}
-        <div className="mt-12">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Módulos do Sistema</h2>
+                      {/* Navigation Cards */}
+        <div className="">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
@@ -289,6 +221,110 @@ const HomePage: React.FC = () => {
             ))}
           </div>
         </div>
+      <div className="">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            {/* <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Painel de Gestão
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Bem-vindo ao sistema de locação de itens para eventos
+              </p>
+            </div> */}
+            {/* <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowAIAssistant(true)}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <span className="text-lg">🤖</span>
+                <span>Nanda IA</span>
+              </button>
+              <Link
+                to="/nanda"
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              >
+                Sobre a Nanda →
+              </Link>
+            </div> */}
+          </div>
+        </div>
+
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        
+        {/* Dashboard Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {dashboardData.map((card, index) => (
+            <DashboardCard
+              key={index}
+              title={card.title}
+              value={loading ? 'Carregando...' : error ? 'Erro' : card.value}
+              icon={card.icon}
+              color={card.color}
+              onClick={() => {
+                if (card.title.includes('Reservas')) navigate('/reservas');
+                if (card.title.includes('Produtos')) navigate('/produtos');
+                if (card.title.includes('Clientes')) navigate('/clientes');
+                if (card.title.includes('Orçamentos')) navigate('/orcamentos');
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Quick Actions */}
+          {/* <div className="lg:col-span-1">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
+            <div className="space-y-3">
+              {quickActions.map((action, index) => (
+                <QuickAction
+                  key={index}
+                  title={action.title}
+                  description={action.description}
+                  icon={action.icon}
+                  color={action.color}
+                  onClick={action.onClick}
+                />
+              ))}
+            </div>
+          </div> */}
+
+          {/* Recent Activity */}
+          {/* <div className="lg:col-span-2">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Atividade Recente</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="divide-y divide-gray-200">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start space-x-3">
+                      <div className={`p-2 rounded-full ${getStatusColor(activity.status)}`}>
+                        <span className="text-sm">{getActivityIcon(activity.type)}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {activity.description}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {activity.time}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-4 bg-gray-50 rounded-b-lg">
+                <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
+                  Ver todas as atividades →
+                </button>
+              </div>
+            </div>
+          </div> */}
+        </div>
+
+
       </div>
 
       {/* AI Assistant Modal */}
