@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import Table from '../components/ui/Table.tsx';
 import Button from '../components/ui/Button.tsx';
@@ -13,55 +11,61 @@ import { useConverterOrcamento } from '../hooks/useOrcamentos.ts';
 import OrcamentoForm from '../components/OrcamentoForm.tsx';
 import { useLocais } from '../hooks/useLocais.ts';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Reserva, Cliente, Produto, Local } from '../types/api';
-import { formatDateTime, formatCurrency } from '../utils/formatters.ts';
-// Adicione o import do ReservaService
+import type { Cliente, Produto, Local, Reserva } from '../types/api';
+import type { OrcamentoAgrupado, StatusGeral, ItemOrcamentoAgrupado } from '../types/orcamento';
+import { formatDate, formatDateTime, formatCurrency } from '../utils/formatters.ts';
 import ReservaService from '../services/reservaService.ts';
+import { jwtFetch } from '../services/jwtFetch.ts';
+import type { TableColumn } from '../components/ui/Table.tsx';
 
 // Removido: buscarReservaAgrupada
 
 // Função utilitária para montar o payload do orçamento
 
 // Função para imprimir orçamento (sem request adicional)
-async function imprimirOrcamento(orcamento: OrcamentoAgrupado, clientes: Cliente[], locais: Local[], produtos: Produto[]) {
+async function imprimirOrcamento(orcamento: OrcamentoAgrupado) {
   // Se já existe link_drive, abre direto
   if (orcamento.link_drive) {
     window.open(orcamento.link_drive, '_blank');
     return;
   }
+  
   console.log('Gerando planilha para orçamento', orcamento);
-  // Se não houver link_drive, gera planilha e salva
-  const cliente = clientes.find(c => c.id_cliente === orcamento.id_cliente);
-  const local = locais.length > 0 ? locais[0] : undefined;
+  
+  // Load full objects from localStorage
+  const clientesStorage: Cliente[] = JSON.parse(localStorage.getItem('clientes') || '[]');
+  const locaisStorage: Local[] = JSON.parse(localStorage.getItem('locais') || '[]');
+  const produtosStorage: Produto[] = JSON.parse(localStorage.getItem('produtos') || '[]');
+  const clienteFull = clientesStorage.find(c => c.id_cliente === orcamento.id_cliente) || null;
+  const localFull = locaisStorage.find(l => l.id_local === orcamento.id_local) || null;
   const itensDetalhados = orcamento.itens.map(item => {
-    const produto = produtos.find(p => p.id_produto === item.id_produto);
+    const produtoFull = produtosStorage.find(p => p.id_produto === item.id_produto) || null;
     return {
       ...item,
-      produto_nome: produto?.nome || item.produto_nome,
-      produto_valor_locacao: produto?.valor_locacao || item.valor_unitario || 0,
+      produto: produtoFull,
+      valor_danificacao: produtoFull?.valor_danificacao || 0
     };
   });
+  
+  // Monta payload completo com objetos relacionados
   const payload = {
-    id_reserva: orcamento.id_reserva,
-    data_inicio: orcamento.data_inicio,
-    data_fim: orcamento.data_fim,
-    status: orcamento.status,
-    valor_total: orcamento.valor_total,
-    observacoes: orcamento.observacoes,
-    cliente: cliente ? {
-      id_cliente: cliente.id_cliente,
-      nome: cliente.nome,
-      email: cliente.email,
-      telefone: cliente.telefone,
-    } : {},
-    local: local ? {
-      id_local: local.id_local,
-      endereco: local.endereco,
-      capacidade: local.capacidade,
-    } : {},
+    ...orcamento,
+    // Send dates as plain YYYY-MM-DD
+    data_inicio: orcamento.data_inicio.split('T')[0],
+    data_fim: orcamento.data_fim.split('T')[0],
+    data_criacao: orcamento.data_criacao.split('T')[0],
+    data_saida: orcamento.data_saida ? orcamento.data_saida.split('T')[0] : null,
+    data_retorno: orcamento.data_retorno ? orcamento.data_retorno.split('T')[0] : null,
+    cliente: clienteFull,
+    local: localFull,
     itens: itensDetalhados,
+    metadata: {
+      sistema: 'Sistema de Gestão Cunha',
+      versao: '1.0.0',
+      data_geracao: new Date().toISOString()
+    }
   };
-  const resp = await fetch('https://n8n.piloto.live/webhook/cunha-drive', {
+  const resp = await jwtFetch('https://n8n.piloto.live/webhook/cunha-drive', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -80,25 +84,67 @@ async function imprimirOrcamento(orcamento: OrcamentoAgrupado, clientes: Cliente
 }
 
 
-// Tipo para orçamento agrupado
-interface OrcamentoAgrupado {
-  id_reserva: number;
-  id_cliente: number;
-  cliente_nome: string;
-  data_inicio: string;
-  data_fim: string;
-  status: string;
-  itens: {
-    id_item_reserva: number;
-    id_produto: number;
-    produto_nome: string;
-    quantidade: number;
-    valor_unitario?: number;
-  }[];
-  valor_total: number;
-  observacoes?: string;
-  link_drive?: string;
-}
+// Using OrcamentoAgrupado type from orcamento.ts
+
+// Helper function to convert a Reserva to an OrcamentoAgrupado
+const convertToOrcamentoAgrupado = (
+  reserva: Reserva,
+  clientesMap: Map<number, Cliente>,
+  produtosMap: Map<number, Produto>,
+  reservas: Reserva[]
+): OrcamentoAgrupado | null => {
+  const cliente = clientesMap.get(reserva.id_cliente || 0);
+  const produto = produtosMap.get(reserva.id_produto);
+  const dataAtual = new Date().toISOString();
+  
+  // Find all items for this reservation
+  const itens = reservas
+    .filter(r => r.id_reserva === reserva.id_reserva)
+    .map(r => {
+      const p = produtosMap.get(r.id_produto);
+      return {
+        id_item_reserva: r.id_item_reserva,
+        id_produto: r.id_produto,
+        produto_nome: p?.nome || 'Produto não encontrado',
+        quantidade: r.quantidade,
+        valor_unitario: p?.valor_locacao || 0,
+        observacoes: r.observacoes
+      };
+    });
+
+  // Calculate total value with days
+  const inicio = new Date(reserva.data_inicio);
+  const fim = new Date(reserva.data_fim);
+  const diferenca = fim.getTime() - inicio.getTime();
+  const diffDays = Math.ceil(diferenca / (1000 * 60 * 60 * 24));
+  const dias = diffDays > 0 ? diffDays : 0;
+  const valor_itens = itens.reduce((total, item) => {
+    return total + (item.valor_unitario || 0) * item.quantidade * dias;
+  }, 0);
+  // Coerce frete and desconto to numbers to avoid string concatenation
+  const freteNum = Number(reserva.frete) || 0;
+  const descontoNum = Number(reserva.desconto) || 0;
+  const valor_total = valor_itens + freteNum - descontoNum;
+  return {
+    id_reserva: reserva.id_reserva,
+    id_cliente: reserva.id_cliente || 0,
+    id_local: reserva.id_local || null,
+    cliente_nome: cliente?.nome || 'Cliente não encontrado',
+    data_inicio: reserva.data_inicio,
+    data_fim: reserva.data_fim,
+    data_criacao: reserva.data_criacao || dataAtual,
+    status: reserva.status as StatusGeral,
+    itens,
+    valor_total,
+    observacoes: reserva.observacoes,
+    link_drive: reserva.link_drive,
+    frete: reserva.frete || 0,
+    desconto: reserva.desconto || 0,
+    dias_reservados: reserva.dias_reservados || 0,
+    data_saida: reserva.data_saida,
+    data_retorno: reserva.data_retorno
+  };
+};
 
 const BudgetsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -152,70 +198,116 @@ const BudgetsPage: React.FC = () => {
     const inicio = new Date(dataInicio);
     const fim = new Date(dataFim);
     const diferenca = fim.getTime() - inicio.getTime();
-    const dias = Math.max(1, Math.ceil(diferenca / (1000 * 60 * 60 * 24)) + 1);
+    const dias = Math.max(1, Math.ceil(diferenca / (1000 * 60 * 60 * 24)));
     
     return produto.valor_locacao * quantidade * dias;
   };
 
-  // Agrupar orçamentos por id_reserva
+  // Agrupar orçamentos por id_reserva usando helper para consistência de cálculo
   const orcamentosAgrupados = useMemo(() => {
-    const grupos = new Map<number, OrcamentoAgrupado>();
-    reservas.forEach(reserva => {
-      const cliente = clientesMap.get(reserva.id_cliente || 0);
-      const produto = produtosMap.get(reserva.id_produto);
-      if (!grupos.has(reserva.id_reserva)) {
-        grupos.set(reserva.id_reserva, {
-          id_reserva: reserva.id_reserva,
-          id_cliente: reserva.id_cliente || 0,
-          cliente_nome: cliente?.nome || 'Cliente não encontrado',
-          data_inicio: reserva.data_inicio,
-          data_fim: reserva.data_fim,
-          status: reserva.status,
-          itens: [],
-          valor_total: 0,
-          observacoes: reserva.observacoes,
-          link_drive: reserva.link_drive // <-- Adiciona o campo link_drive
-        });
-      }
-      const grupo = grupos.get(reserva.id_reserva)!;
-      const valorItem = calcularValorItem(produto, reserva.quantidade, reserva.data_inicio, reserva.data_fim);
-      grupo.itens.push({
-        id_item_reserva: reserva.id_item_reserva,
-        id_produto: reserva.id_produto,
-        produto_nome: produto?.nome || 'Produto não encontrado',
-        quantidade: reserva.quantidade,
-        valor_unitario: produto?.valor_locacao || 0
-      });
-      grupo.valor_total += valorItem;
-      // Se algum item tiver link_drive, garante que o agrupado tenha o link
-      if (reserva.link_drive && !grupo.link_drive) {
-        grupo.link_drive = reserva.link_drive;
-      }
-    });
-    return Array.from(grupos.values());
+    const ids = Array.from(new Set(reservas.map(r => r.id_reserva)));
+    return ids
+      .map(id => {
+        const reserva = reservas.find(r => r.id_reserva === id);
+        if (!reserva) return null;
+        return convertToOrcamentoAgrupado(reserva, clientesMap, produtosMap, reservas);
+      })
+      .filter((o): o is OrcamentoAgrupado => o !== null);
   }, [reservas, clientesMap, produtosMap]);
+
+  // Handle printing with full related data
+  const handleImprimirOrcamento = async (orcamento: OrcamentoAgrupado) => {
+    // Gather related data
+    const clienteFull = clientes.find(c => c.id_cliente === orcamento.id_cliente) || null;
+    const localFull = locais.find(l => l.id_local === orcamento.id_local) || null;
+    const itensDetalhados = orcamento.itens.map(item => {
+      const produtoFull = produtos.find(p => p.id_produto === item.id_produto) || null;
+      return {
+        ...item,
+        produto: produtoFull,
+        valor_danificacao: produtoFull?.valor_danificacao || 0
+      };
+    });
+    // Send full objects for cliente, local, and itens
+    const payload = {
+      ...orcamento,
+      // Send dates as plain YYYY-MM-DD
+      data_inicio: orcamento.data_inicio.split('T')[0],
+      data_fim: orcamento.data_fim.split('T')[0],
+      data_criacao: orcamento.data_criacao.split('T')[0],
+      data_saida: orcamento.data_saida ? orcamento.data_saida.split('T')[0] : null,
+      data_retorno: orcamento.data_retorno ? orcamento.data_retorno.split('T')[0] : null,
+      cliente: clienteFull,
+      local: localFull,
+      itens: itensDetalhados,
+      metadata: {
+        sistema: 'Sistema de Gestão Cunha',
+        versao: '1.0.0',
+        data_geracao: new Date().toISOString()
+      }
+    };
+    const resp = await jwtFetch('https://n8n.piloto.live/webhook/cunha-drive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) throw new Error('Erro ao gerar planilha');
+    const data = await resp.json();
+    if (data.link) {
+      const url = `https://drive.google.com/file/d/${data.link}/view`;
+      window.open(url, '_blank');
+      await ReservaService.atualizarLinkDrive(Number(orcamento.id_reserva), url);
+      window.location.reload();
+    } else {
+      alert('Erro ao obter link da planilha');
+    }
+  };
 
   const handleCreateOrcamento = () => {
     setSelectedOrcamento(null);
     setShowModal(true);
   };
 
-  const handleEditOrcamento = (orcamento: Reserva) => {
+  const handleEditOrcamento = (orcamento: OrcamentoAgrupado) => {
     // Busca o grupo completo pelo id_reserva
     const grupo = orcamentosAgrupados.find(o => o.id_reserva === orcamento.id_reserva);
     if (grupo) {
-      setSelectedOrcamento(grupo);
+      console.log('Grupo encontrado:', grupo);
+      // Encontra a primeira reserva que tem as informações de local, frete e desconto
+      const reservaCompleta = reservas.find(r => r.id_reserva === orcamento.id_reserva);
+      
+      // Cria um novo objeto com as informações adicionais
+      const orcamentoCompleto = {
+        ...grupo,
+        id_local: reservaCompleta?.id_local || 0,
+        frete: reservaCompleta?.frete || 0,
+        desconto: reservaCompleta?.desconto || 0
+      };
+
+      console.log('Orcamento completo:', orcamentoCompleto);
+      
+      setSelectedOrcamento(orcamentoCompleto);
       setShowModal(true);
     }
   };
 
   const handleDeleteOrcamento = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este orçamento?')) {
+    if (window.confirm('Tem certeza que deseja cancelar este orçamento?')) {
       try {
-        await excluirOrcamentoMutation.mutateAsync(id);
+        // Busca o grupo de itens pelo id_reserva
+        const grupo = orcamentosAgrupados.find(o => o.id_reserva === id);
+        if (grupo) {
+          await Promise.all(grupo.itens.map(item =>
+            ReservaService.atualizarStatus(item.id_item_reserva, 'cancelada')
+          ));
+        } else {
+          // fallback: tenta atualizar pelo id direto
+          await ReservaService.atualizarStatus(id, 'cancelada');
+        }
         refetch();
       } catch (error) {
-        console.error('Erro ao excluir orçamento:', error);
+        console.error('Erro ao cancelar orçamento:', error);
+        alert('Erro ao cancelar orçamento');
       }
     }
   };
@@ -231,15 +323,24 @@ const BudgetsPage: React.FC = () => {
     refetch();
   };
 
-  const handleConvertToReserva = async (orcamento: Reserva) => {
-    if (window.confirm('Tem certeza que deseja converter este orçamento em reserva?')) {
+  const handleConvertToReserva = async (orcamento: OrcamentoAgrupado) => {
+    if (window.confirm('Tem certeza que deseja confirmar este orçamento como reserva?')) {
       try {
-        await converterOrcamentoMutation.mutateAsync(orcamento.id_item_reserva);
-        alert('Orçamento convertido para reserva com sucesso!');
+        // Busca o grupo de itens pelo id_reserva
+        const grupo = orcamentosAgrupados.find(o => o.id_reserva === orcamento.id_reserva);
+        if (grupo) {
+          await Promise.all(grupo.itens.map(item =>
+            ReservaService.atualizarStatus(item.id_item_reserva, 'ativa')
+          ));
+        } else {
+          // fallback: tenta atualizar pelo id direto
+          await ReservaService.atualizarStatus(orcamento.id_reserva, 'ativa');
+        }
+        alert('Reserva confirmada com sucesso!');
         refetch();
       } catch (error) {
-        console.error('Erro ao converter orçamento:', error);
-        alert('Erro ao converter orçamento');
+        console.error('Erro ao confirmar reserva:', error);
+        alert('Erro ao confirmar reserva');
       }
     }
   };
@@ -273,21 +374,27 @@ const BudgetsPage: React.FC = () => {
             Tentar Novamente
           </Button>
         </div>
+        <p className="text-sm text-gray-600 mt-1">
+          {orcamentosAgrupados.length} orçamento(s) encontrado(s) •{' '}
+          {orcamentosAgrupados.reduce((count, orc) => count + orc.itens.length, 0)} item(s) total •{' '}
+          Valor total: {formatCurrency(orcamentosAgrupados.reduce((sum, orc) => sum + orc.valor_total, 0))}
+        </p>
       </div>
     );
   }
 
-  const columns = [
+  const columns: TableColumn<OrcamentoAgrupado>[] = [
     {
       header: 'Cliente',
-      accessor: (orcamento: OrcamentoAgrupado) => orcamento.cliente_nome,
+      accessor: 'cliente_nome' as keyof OrcamentoAgrupado,
       className: 'min-w-[120px]'
     },
     {
       header: 'Itens',
-      accessor: (orcamento: OrcamentoAgrupado) => (
+      accessor: 'itens' as keyof OrcamentoAgrupado,
+      cell: (orcamento: OrcamentoAgrupado) => (
         <div className="space-y-2">
-          {orcamento.itens.map((item, index) => (
+          {orcamento.itens.map(item => (
             <div key={item.id_item_reserva} className="text-sm border-l-2 border-blue-200 pl-2 break-words">
               <div className="font-medium text-gray-900 break-words">{item.produto_nome}</div>
               <div className="text-gray-500 flex flex-col sm:flex-row sm:justify-between break-words">
@@ -307,17 +414,18 @@ const BudgetsPage: React.FC = () => {
     },
     {
       header: 'Data Início',
-      accessor: (orcamento: OrcamentoAgrupado) => formatDateTime(orcamento.data_inicio),
+      accessor: (orcamento: OrcamentoAgrupado) => formatDate(orcamento.data_inicio),
       className: 'min-w-[100px]'
     },
     {
       header: 'Data Fim',
-      accessor: (orcamento: OrcamentoAgrupado) => formatDateTime(orcamento.data_fim),
+      accessor: (orcamento: OrcamentoAgrupado) => formatDate(orcamento.data_fim),
       className: 'min-w-[100px]'
     },
     {
       header: 'Valor Total',
-      accessor: (orcamento: OrcamentoAgrupado) => (
+      accessor: 'valor_total' as keyof OrcamentoAgrupado,
+      cell: (orcamento: OrcamentoAgrupado) => (
         <span className="font-medium text-green-600">
           {formatCurrency(orcamento.valor_total)}
         </span>
@@ -326,19 +434,17 @@ const BudgetsPage: React.FC = () => {
     },
     {
       header: 'Ações',
-      accessor: (orcamento: OrcamentoAgrupado) => (
-        <div
-          className="flex flex-wrap gap-1 justify-start items-center min-w-[100px] sm:min-w-[80px] md:min-w-[60px]"
-          style={{ rowGap: '0.25rem' }}
-        >
+      accessor: 'id_reserva' as keyof OrcamentoAgrupado,
+      cell: (orcamento: OrcamentoAgrupado) => (
+        <div className="flex flex-wrap gap-1 justify-start items-center min-w-[100px] sm:min-w-[80px] md:min-w-[60px]" style={{ rowGap: '0.25rem' }}>
           <Button
             size="sm"
             variant="outline"
             onClick={() => {
-              // Para editar, pegamos o primeiro item da reserva
-              const primeiraReserva = reservas.find(r => r.id_reserva === orcamento.id_reserva);
-              if (primeiraReserva) {
-                handleEditOrcamento(primeiraReserva);
+              // Find the orcamento in the grouped list
+              const orcamentoCompleto = orcamentosAgrupados.find(o => o.id_reserva === orcamento.id_reserva);
+              if (orcamentoCompleto) {
+                handleEditOrcamento(orcamentoCompleto);
               }
             }}
             className="p-1 min-w-[28px]"
@@ -349,30 +455,18 @@ const BudgetsPage: React.FC = () => {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              // Deletar todos os itens da reserva
-              if (window.confirm(`Tem certeza que deseja excluir este orçamento com ${orcamento.itens.length} item(s)?`)) {
-                orcamento.itens.forEach(async (item) => {
-                  try {
-                    await excluirOrcamentoMutation.mutateAsync(item.id_item_reserva);
-                  } catch (error) {
-                    console.error('Erro ao excluir item:', error);
-                  }
-                });
-                refetch();
-              }
-            }}
+            onClick={() => handleDeleteOrcamento(orcamento.id_reserva)}
             className="p-1 text-red-600 hover:text-red-700 min-w-[28px]"
-            aria-label="Excluir orçamento"
+            aria-label="Cancelar orçamento"
           >
-            🗑️
+            ❌
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={async () => {
               try {
-                await imprimirOrcamento(orcamento, clientes, locais, produtos);
+                await handleImprimirOrcamento(orcamento);
               } catch (e) {
                 alert('Erro ao imprimir orçamento: ' + (e as Error).message);
               }
@@ -388,17 +482,17 @@ const BudgetsPage: React.FC = () => {
               size="sm"
               variant="primary"
               onClick={() => {
-                // Para converter, pegamos o primeiro item da reserva
-                const primeiraReserva = reservas.find(r => r.id_reserva === orcamento.id_reserva);
-                if (primeiraReserva) {
-                  handleConvertToReserva(primeiraReserva);
+                // Find the orcamento in the grouped list
+                const orcamentoCompleto = orcamentosAgrupados.find(o => o.id_reserva === orcamento.id_reserva);
+                if (orcamentoCompleto) {
+                  handleConvertToReserva(orcamentoCompleto);
                 }
               }}
               className="p-1 text-xs min-w-[28px]"
-              title="Converter para Reserva"
-              aria-label="Converter para reserva"
+              title="Confirmar Reserva"
+              aria-label="Confirmar reserva"
             >
-              📅
+              ✅
             </Button>
           )}
         </div>
@@ -419,9 +513,13 @@ const BudgetsPage: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orçamentos</h1>
           {!isLoading && (
             <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              {orcamentosAgrupados.length} orçamento(s) encontrado(s) • 
-              {reservas.length} item(s) total • 
-              Valor total: {formatCurrency(orcamentosAgrupados.reduce((sum, orc) => sum + orc.valor_total, 0))}
+              {orcamentosAgrupados.length} orçamento(s) encontrado(s) •{' '}
+              {orcamentosAgrupados.reduce((count, orc) =>
+                count + orc.itens.reduce((sum, item) => sum + item.quantidade, 0), 0
+              )} item(s) total •{' '}
+              Valor total: {formatCurrency(
+                orcamentosAgrupados.reduce((sum, orc) => sum + orc.valor_total, 0)
+              )}
             </p>
           )}
         </div>
@@ -495,19 +593,67 @@ const BudgetsPage: React.FC = () => {
       )}
 
       {showModal && (
-        <Modal isOpen={showModal} onClose={handleModalClose} size="xl">
-          <div className="p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
-              {selectedOrcamento ? 'Editar Orçamento' : 'Novo Orçamento'}
-            </h2>
-            <OrcamentoForm
-              orcamento={selectedOrcamento ?? undefined}
-              onSuccess={handleFormSuccess}
-              onCancel={handleModalClose}
-              locais={locais}
-              atualizarClientes={atualizarClientes}
-              atualizarLocais={atualizarLocais}
-            />
+        <Modal 
+          isOpen={showModal} 
+          onClose={handleModalClose} 
+          size="xl"
+        >
+          <div className="relative bg-white rounded-lg shadow-xl overflow-hidden w-full max-w-4xl">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-800">
+                    {selectedOrcamento ? '✏️ Editar Orçamento' : '➕ Novo Orçamento'}
+                  </h2>
+                  {selectedOrcamento && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      ID: {selectedOrcamento.id_reserva}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleModalClose}
+                  className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md p-1 transition-colors"
+                  aria-label="Fechar"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <OrcamentoForm
+                orcamento={selectedOrcamento ?? undefined}
+                onSuccess={handleFormSuccess}
+                onCancel={handleModalClose}
+                locais={locais}
+                 atualizarClientes={atualizarClientes}
+                 atualizarLocais={atualizarLocais}
+               />
+            </div>
+            
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end space-x-3">
+              <Button 
+                variant="outline" 
+                onClick={handleModalClose}
+                className="px-4 py-2 text-sm font-medium"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                form="orcamento-form"
+                variant="primary"
+                className="px-4 py-2 text-sm font-medium"
+              >
+                {selectedOrcamento ? 'Atualizar Orçamento' : 'Criar Orçamento'}
+              </Button>
+            </div>
           </div>
         </Modal>
       )}

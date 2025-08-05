@@ -1,3 +1,13 @@
+-- ALTER TABLE erp.reservas: adicionar campos extras para reservas
+
+ALTER TABLE erp.reservas
+  ADD COLUMN frete numeric NULL,
+  ADD COLUMN desconto numeric NULL,
+  ADD COLUMN data_criacao timestamp DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN data_atualizacao timestamp DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN data_saida timestamp NULL,
+  ADD COLUMN data_retorno timestamp NULL,
+  ADD COLUMN dias_reservados int4 NULL;
 -- DROP SCHEMA erp;
 
 CREATE SCHEMA erp AUTHORIZATION cloudsqlsuperuser;

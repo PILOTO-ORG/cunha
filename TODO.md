@@ -1,3 +1,47 @@
+# TODO - Atualização Reservas
+
+## Objetivo
+Atualizar banco de dados e rotas para reservas, incluindo os campos:
+- frete
+- desconto
+- data de criação
+- data de atualização
+- data de saída
+- data de retorno
+- dias reservados
+
+## Passos
+
+### 1. Banco de Dados
+- Adicionar colunas nas tabelas de reservas:
+  - frete (decimal)
+  - desconto (decimal)
+  - data_criacao (timestamp)
+  - data_atualizacao (timestamp)
+  - data_saida (date/datetime)
+  - data_retorno (date/datetime)
+  - dias_reservados (int)
+
+### 2. Backend
+- Atualizar models e migrations para incluir os novos campos.
+- Atualizar controllers para aceitar e retornar os novos campos.
+- Atualizar rotas de criação, edição e consulta de reservas.
+
+### 3. Frontend
+- Atualizar formulários e páginas para enviar e exibir os novos campos.
+- Garantir que os campos sejam tratados corretamente nas interfaces.
+
+### 4. Testes
+- Testar criação, edição e consulta de reservas com os novos campos.
+- Validar integração frontend-backend.
+
+---
+
+## Progresso
+- [x] Banco de dados atualizado
+- [x] Backend atualizado
+- [x] Frontend atualizado
+- [x] Testes realizados
 # TODO - Sistema ERP Cunha Fe#### 1.1 ✅ Recriar OrcamentoService
 - [x] Recriar arquivo `orcamentoService.ts` (atualmente vazio)
 - [x] Implementar todos os métodos conforme documentação da API
@@ -46,13 +90,13 @@
 - [ ] Testar integração com webhook n8n
 
 #### 1.2 Corrigir Hooks
-- [ ] Atualizar `useOrcamentosReservas.ts` para usar o novo serviço
-- [ ] Criar hooks para LocalService
-- [ ] Verificar e corrigir imports em todos os hooks
+- [x] Atualizar `useOrcamentosReservas.ts` para usar o novo serviço
+- [x] Criar hooks para LocalService
+- [x] Verificar e corrigir imports em todos os hooks
 
 #### 1.3 Consolidar Arquivos Duplicados
-- [ ] Remover arquivos em inglês: `productService.ts`, `clientService.ts`, `budgetService.ts`
-- [ ] Remover hooks em inglês: `useProducts.ts`, `useClients.ts`, `useBudgets.ts`
+- [x] Remover arquivos em inglês: `productService.ts`, `clientService.ts`, `budgetService.ts`
+- [x] Remover hooks em inglês: `useProducts.ts`, `useClients.ts`, `useBudgets.ts`
 - [ ] Manter apenas versões em português com padrão n8n
 
 ### 2. **Implementar Páginas CRUD Completas** (Alta Prioridade)
@@ -72,7 +116,6 @@
 - [ ] Estatísticas do cliente
 
 #### 2.3 Página de Orçamentos
-- [ ] Criar nova página de orçamentos funcional
 - [ ] Formulário de criação de orçamento com:
   - [ ] Seleção de cliente
   - [ ] Seleção de local

@@ -33,10 +33,17 @@ exports.atualizarOrcamentoMultiplo = async (req, res, next) => {
     const results = [];
     for (const item of itens) {
       try {
-        const { id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes } = item;
+        const {
+          id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+          frete, desconto, data_saida, data_retorno, dias_reservados
+        } = item;
         const result = await pool.query(
-          'INSERT INTO erp.reservas (id_reserva, id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-          [id_reserva, id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes]
+          `INSERT INTO erp.reservas (
+            id_reserva, id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+            frete, desconto, data_saida, data_retorno, dias_reservados
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+          [id_reserva, id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+            frete, desconto, data_saida, data_retorno, dias_reservados]
         );
         results.push(result.rows[0]);
         console.log(`[atualizar-orcamento-multiplo] Item atualizado:`, result.rows[0]);
@@ -92,10 +99,17 @@ exports.buscarReservaPorIdReserva = async (req, res, next) => {
 
 exports.criarReserva = async (req, res, next) => {
   try {
-    const { id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes } = req.body;
+    const {
+      id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+      frete, desconto, data_saida, data_retorno, dias_reservados
+    } = req.body;
     const result = await pool.query(
-      'INSERT INTO erp.reservas (id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes]
+      `INSERT INTO erp.reservas (
+        id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+        frete, desconto, data_saida, data_retorno, dias_reservados
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+        frete, desconto, data_saida, data_retorno, dias_reservados]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) { next(err); }
@@ -104,10 +118,17 @@ exports.criarReserva = async (req, res, next) => {
 exports.atualizarReserva = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes } = req.body;
+    const {
+      id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+      frete, desconto, data_saida, data_retorno, dias_reservados
+    } = req.body;
     const result = await pool.query(
-      'UPDATE erp.reservas SET id_cliente=$1, id_local=$2, data_inicio=$3, data_fim=$4, id_produto=$5, quantidade=$6, status=$7, observacoes=$8 WHERE id_item_reserva=$9 RETURNING *',
-      [id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes, id]
+      `UPDATE erp.reservas SET
+        id_cliente=$1, id_local=$2, data_inicio=$3, data_fim=$4, id_produto=$5, quantidade=$6, status=$7, observacoes=$8,
+        frete=$9, desconto=$10, data_saida=$11, data_retorno=$12, dias_reservados=$13, data_atualizacao=NOW()
+        WHERE id_item_reserva=$14 RETURNING *`,
+      [id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+        frete, desconto, data_saida, data_retorno, dias_reservados, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Reserva não encontrada' });
     res.json(result.rows[0]);
@@ -153,19 +174,80 @@ exports.buscarReservasPorPeriodo = async (req, res, next) => {
 };
 
 exports.atualizarOrcamento = async (req, res, next) => {
+  const client = await pool.connect();
   try {
-    // Exemplo mínimo: apenas retorna sucesso
-    res.json({ success: true, message: 'Orçamento atualizado (placeholder)' });
-  } catch (err) { next(err); }
+    const { id_reserva, itens } = req.body;
+    
+    if (!id_reserva || !Array.isArray(itens) || itens.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'id_reserva e itens são obrigatórios' 
+      });
+    }
+
+    await client.query('BEGIN');
+
+    // Primeiro, remove os itens antigos da reserva
+    await client.query('DELETE FROM erp.reservas WHERE id_reserva = $1', [id_reserva]);
+
+    // Depois, insere os itens atualizados
+    const insertedItems = [];
+    for (const item of itens) {
+      const {
+        id_cliente, id_local, data_inicio, data_fim, 
+        id_produto, quantidade, status, observacoes,
+        frete, desconto, data_saida, data_retorno, dias_reservados, link_drive
+      } = item;
+
+      const result = await client.query(
+        `INSERT INTO erp.reservas (
+          id_reserva, id_cliente, id_local, data_inicio, data_fim, 
+          id_produto, quantidade, status, observacoes,
+          frete, desconto, data_saida, data_retorno, dias_reservados, link_drive
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+        RETURNING *`,
+        [
+          id_reserva, id_cliente, id_local, data_inicio, data_fim,
+          id_produto, quantidade, status || 'iniciada', observacoes,
+          frete || 0, desconto || 0, data_saida, data_retorno, 
+          dias_reservados || 0, link_drive || ''
+        ]
+      );
+      
+      insertedItems.push(result.rows[0]);
+    }
+
+    await client.query('COMMIT');
+    
+    res.json({ 
+      success: true, 
+      message: 'Orçamento atualizado com sucesso',
+      data: insertedItems
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Erro ao atualizar orçamento:', err);
+    next(err);
+  } finally {
+    client.release();
+  }
 };
 
 exports.atualizarStatusReserva = async (req, res, next) => {
   try {
-    // Exemplo mínimo: apenas retorna sucesso
-    res.json({ success: true, message: 'Status atualizado (placeholder)' });
-  } catch (err) { next(err); }
+    const { id_item_reserva, status } = req.body;
+    const result = await pool.query(
+      'UPDATE erp.reservas SET status = $1 WHERE id_item_reserva = $2 RETURNING *',
+      [status, id_item_reserva]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Reserva não encontrada.' });
+    }
+    res.json({ success: true, message: 'Status atualizado', data: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
 };
-
 exports.criarOrcamentoMultiplo = async (req, res, next) => {
   try {
     console.log('[orcamento-multiplo] Payload recebido:', JSON.stringify(req.body, null, 2));
@@ -181,11 +263,18 @@ exports.criarOrcamentoMultiplo = async (req, res, next) => {
     const results = [];
     for (const item of itens) {
       try {
-        const { id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes } = item;
+        const {
+          id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+          frete, desconto, data_saida, data_retorno, dias_reservados
+        } = item;
         // Força o id_reserva explicitamente
         const result = await pool.query(
-          'INSERT INTO erp.reservas (id_reserva, id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-          [id_reserva, id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes]
+          `INSERT INTO erp.reservas (
+            id_reserva, id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+            frete, desconto, data_saida, data_retorno, dias_reservados
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+          [id_reserva, id_cliente, id_local, data_inicio, data_fim, id_produto, quantidade, status, observacoes,
+            frete, desconto, data_saida, data_retorno, dias_reservados]
         );
         // Garante que todos os itens retornem o mesmo id_reserva
         const row = { ...result.rows[0], id_reserva };

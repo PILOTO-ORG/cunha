@@ -30,17 +30,18 @@
 - [x] JSON de exemplos de interação da IA
 
 ### 🔧 Em Progresso
-- [ ] Serviço de orçamentos/reservas (arquivo vazio)
-- [ ] Páginas de CRUD existem mas usam hooks/serviços antigos
-- [ ] Integração real com o backend n8n
+ [x] Serviço de orçamentos/reservas implementado
+ [x] Hooks e serviços padronizados
+ [ ] Páginas de CRUD precisam ser atualizadas para usar os novos hooks/serviços
+ [ ] Integração real com o backend n8n
 
----
+ [x] Atualizar `useOrcamentosReservas.ts` para usar o novo serviço
+ [x] Criar hooks para LocalService
+ [x] Verificar e corrigir imports em todos os hooks
 
-## 🎯 Tarefas Prioritárias
-
-### 1. **Corrigir Serviços e Hooks** (Alta Prioridade)
-
-#### 1.1 Recriar OrcamentoService
+ [x] Remover arquivos em inglês: `productService.ts`, `clientService.ts`, `budgetService.ts`
+ [x] Remover hooks em inglês: `useProducts.ts`, `useClients.ts`, `useBudgets.ts`
+ [x] Manter apenas versões em português com padrão n8n
 - [x] Recriar arquivo `orcamentoService.ts` (atualmente vazio) ✅
 - [x] Implementar todos os métodos conforme documentação da API ✅
 - [ ] Testar integração com webhook n8n
@@ -255,11 +256,15 @@
 
 ## 🎯 Próximos Passos Imediatos
 
-1. **Hoje**: Recriar `orcamentoService.ts` com todos os métodos
-2. **Hoje**: Corrigir imports quebrados nas páginas existentes
-3. **Amanhã**: Atualizar `App.tsx` com todas as rotas
-4. **Esta semana**: Implementar página de Produtos funcional
-5. **Próxima semana**: Implementar página de Clientes funcional
+
+1. Testar integração com webhook n8n
+2. Atualizar páginas de CRUD para usar os novos hooks/serviços
+3. Implementar página de Produtos funcional
+4. Implementar página de Clientes funcional
+5. Implementar página de Orçamentos funcional
+6. Implementar página de Reservas funcional
+7. Implementar página de Locais funcional
+8. Conectar Dashboard com dados reais
 
 ---
 

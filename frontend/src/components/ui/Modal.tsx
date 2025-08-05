@@ -8,6 +8,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  closeButton?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({ 
@@ -15,7 +16,8 @@ const Modal: React.FC<ModalProps> = ({
   onClose, 
   title, 
   children, 
-  size = 'md' 
+  size = 'md',
+  closeButton = true
 }) => {
   const sizeClasses = {
     sm: 'max-w-md',
@@ -60,14 +62,16 @@ const Modal: React.FC<ModalProps> = ({
                       {title}
                     </Dialog.Title>
                   )}
-                  <button
-                    type="button"
-                    className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    onClick={onClose}
-                  >
-                    <span className="sr-only">Fechar</span>
-                    <XMarkIcon className="h-6 w-6" />
-                  </button>
+                  {closeButton && (
+                    <button
+                      type="button"
+                      className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      onClick={onClose}
+                    >
+                      <span className="sr-only">Fechar</span>
+                      <XMarkIcon className="h-6 w-6" />
+                    </button>
+                  )}
                 </div>
                 {children}
               </Dialog.Panel>

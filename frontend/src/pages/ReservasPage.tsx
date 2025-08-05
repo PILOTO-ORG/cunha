@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import Table from '../components/ui/Table.tsx';
 import Button from '../components/ui/Button.tsx';
@@ -10,8 +8,13 @@ import { useReservas, useRemoverReserva } from '../hooks/useReservas.ts';
 import { useClientes } from '../hooks/useClientes.ts';
 import { useProdutos } from '../hooks/useProdutos.ts';
 import ReservaForm from '../components/ReservaForm.tsx';
+import OrcamentoForm from '../components/OrcamentoForm.tsx';
 import type { Reserva, Cliente, Produto } from '../types/api';
-import { formatDateTime, formatCurrency } from '../utils/formatters.ts';
+import { formatDate, formatDateTime, formatCurrency } from '../utils/formatters.ts';
+import type { TableColumn } from '../components/ui/Table.tsx';
+import { jwtFetch } from '../services/jwtFetch.ts';
+import ReservaService from '../services/reservaService.ts';
+import { useLocais } from '../hooks/useLocais.ts';
 
 interface ReservaAgrupada {
   id_reserva: number;
@@ -31,15 +34,50 @@ interface ReservaAgrupada {
   observacoes?: string;
 }
 
+// Add print function for reservations
+async function imprimirReserva(reserva: ReservaAgrupada) {
+  console.log('Gerando planilha para reserva', reserva);
+  const clientesStorage: Cliente[] = JSON.parse(localStorage.getItem('clientes') || '[]');
+  const produtosStorage: Produto[] = JSON.parse(localStorage.getItem('produtos') || '[]');
+  const clienteFull = clientesStorage.find(c => c.id_cliente === reserva.id_cliente) || null;
+  const itensDetalhados = reserva.itens.map(item => {
+    const produtoFull = produtosStorage.find(p => p.id_produto === item.id_produto) || null;
+    return { ...item, produto: produtoFull, valor_danificacao: produtoFull?.valor_danificacao || 0 };
+  });
+  const payload = {
+    ...reserva,
+    cliente: clienteFull,
+    itens: itensDetalhados,
+    // format dates as YYYY-MM-DD
+    data_inicio: reserva.data_inicio.split('T')[0],
+    data_fim: reserva.data_fim.split('T')[0],
+    metadata: { sistema: 'Sistema de Gestão Cunha', versao: '1.0.0', data_geracao: new Date().toISOString() }
+  };
+  const resp = await jwtFetch('https://n8n.piloto.live/webhook/cunha-drive', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  if (!resp.ok) throw new Error('Erro ao gerar planilha');
+  const data = await resp.json();
+  if (data.link) {
+    window.open(`https://drive.google.com/file/d/${data.link}/view`, '_blank');
+    // optionally update link on reservation if needed
+  } else {
+    alert('Erro ao obter link da planilha');
+  }
+}
+
 const ReservasPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ativa' | 'concluída' | 'cancelada' | 'iniciada' | ''>('');
   const [showModal, setShowModal] = useState(false);
   const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null);
+  const { data: locaisData, isLoading: isLoadingLocais } = useLocais();
+  const locais = locaisData?.data || [];
 
   const { data: reservasData, isLoading: isLoadingReservas, error, refetch } = useReservas({
     search,
-    status: statusFilter || undefined
+    // only include status when filtering, omit to fetch all when empty
+    ...(statusFilter ? { status: statusFilter } : {})
   });
   const { data: clientesData, isLoading: isLoadingClientes } = useClientes();
   const { data: produtosData, isLoading: isLoadingProdutos } = useProdutos();
@@ -48,7 +86,7 @@ const ReservasPage: React.FC = () => {
   const reservas = reservasData?.data || [];
   const clientes = clientesData?.data || [];
   const produtos = produtosData?.data || [];
-  const isLoading = isLoadingReservas || isLoadingClientes || isLoadingProdutos;
+  const isLoading = isLoadingReservas || isLoadingClientes || isLoadingProdutos || isLoadingLocais;
 
   const clientesMap = useMemo(() => {
     const map = new Map<number, Cliente>();
@@ -107,6 +145,15 @@ const ReservasPage: React.FC = () => {
     return Array.from(grupos.values());
   }, [reservas, clientesMap, produtosMap]);
 
+  // Ordena por status e data: canceladas por último, datas mais futuras primeiro
+  const reservasOrdenadas = useMemo(() => {
+    return [...reservasAgrupadas].sort((a, b) => {
+      if (a.status === 'cancelada' && b.status !== 'cancelada') return 1;
+      if (b.status === 'cancelada' && a.status !== 'cancelada') return -1;
+      return new Date(b.data_inicio).getTime() - new Date(a.data_inicio).getTime();
+    });
+  }, [reservasAgrupadas]);
+
   const handleCreateReserva = () => {
     setSelectedReserva(null);
     setShowModal(true);
@@ -118,12 +165,19 @@ const ReservasPage: React.FC = () => {
   };
 
   const handleDeleteReserva = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir esta reserva?')) {
+    if (window.confirm('Tem certeza que deseja cancelar esta reserva?')) {
       try {
-        await excluirReservaMutation.mutateAsync(id);
+        // Atualiza status de cada item para cancelada
+        const grupo = reservasAgrupadas.find(r => r.id_reserva === id);
+        if (grupo) {
+          await Promise.all(
+            grupo.itens.map(item => ReservaService.atualizarStatus(item.id_item_reserva, 'cancelada'))
+          );
+        }
         refetch();
       } catch (error) {
-        console.error('Erro ao excluir reserva:', error);
+        console.error('Erro ao cancelar reserva:', error);
+        alert('Erro ao cancelar reserva');
       }
     }
   };
@@ -170,20 +224,16 @@ const ReservasPage: React.FC = () => {
     );
   }
 
-  const columns = [
-    {
-      header: 'ID Reserva',
-      accessor: 'id_reserva' as keyof ReservaAgrupada,
-      className: 'w-20'
-    },
+  const columns: TableColumn<ReservaAgrupada>[] = [
     {
       header: 'Cliente',
-      accessor: (reserva: ReservaAgrupada) => reserva.cliente_nome,
+      accessor: 'cliente_nome' as keyof ReservaAgrupada,
       className: 'min-w-[200px]'
     },
     {
       header: 'Itens',
-      accessor: (reserva: ReservaAgrupada) => (
+      accessor: 'itens' as keyof ReservaAgrupada,
+      cell: (reserva: ReservaAgrupada) => (
         <div className="space-y-2">
           {reserva.itens.map((item) => (
             <div key={item.id_item_reserva} className="text-sm border-l-2 border-blue-200 pl-2">
@@ -205,17 +255,18 @@ const ReservasPage: React.FC = () => {
     },
     {
       header: 'Data Início',
-      accessor: (reserva: ReservaAgrupada) => formatDateTime(reserva.data_inicio),
+      accessor: (reserva: ReservaAgrupada) => formatDate(reserva.data_inicio),
       className: 'min-w-[140px]'
     },
     {
       header: 'Data Fim',
-      accessor: (reserva: ReservaAgrupada) => formatDateTime(reserva.data_fim),
+      accessor: (reserva: ReservaAgrupada) => formatDate(reserva.data_fim),
       className: 'min-w-[140px]'
     },
     {
       header: 'Valor Total',
-      accessor: (reserva: ReservaAgrupada) => (
+      accessor: 'valor_total' as keyof ReservaAgrupada,
+      cell: (reserva: ReservaAgrupada) => (
         <span className="font-medium text-green-600">
           {formatCurrency(reserva.valor_total)}
         </span>
@@ -224,12 +275,14 @@ const ReservasPage: React.FC = () => {
     },
     {
       header: 'Status',
-      accessor: (reserva: ReservaAgrupada) => getStatusBadge(reserva.status),
+      accessor: 'status' as keyof ReservaAgrupada,
+      cell: (reserva: ReservaAgrupada) => getStatusBadge(reserva.status),
       className: 'w-24'
     },
     {
       header: 'Ações',
-      accessor: (reserva: ReservaAgrupada) => (
+      accessor: 'id_reserva' as keyof ReservaAgrupada,
+      cell: (reserva: ReservaAgrupada) => (
         <div className="flex space-x-1">
           <Button
             size="sm"
@@ -251,6 +304,20 @@ const ReservasPage: React.FC = () => {
             className="p-1.5 text-red-600 hover:text-red-700"
           >
             🗑️
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              try {
+                await imprimirReserva(reserva);
+              } catch (e) {
+                alert('Erro ao imprimir reserva: ' + (e as Error).message);
+              }
+            }}
+            className="p-1.5 text-blue-600 hover:text-blue-700"
+          >
+            🖨️
           </Button>
         </div>
       ),
@@ -327,7 +394,7 @@ const ReservasPage: React.FC = () => {
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <Table
-            data={reservasAgrupadas}
+            data={reservasOrdenadas}
             columns={columns}
             emptyMessage="Nenhuma reserva encontrada. Crie sua primeira reserva clicando no botão 'Nova Reserva'."
           />
@@ -338,12 +405,14 @@ const ReservasPage: React.FC = () => {
         <Modal isOpen={showModal} onClose={handleModalClose} size="xl">
           <div className="p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              {selectedReserva ? 'Editar Reserva' : 'Nova Reserva'}
+              {selectedReserva ? 'Editar Detalhes da Reserva' : 'Nova Reserva'}
             </h2>
-            <ReservaForm
-              reserva={selectedReserva ?? undefined}
+            <OrcamentoForm
+              orcamento={selectedReserva as any}
               onSuccess={handleFormSuccess}
               onCancel={handleModalClose}
+              locais={locais}
+              atualizarLocais={() => refetch()}
             />
           </div>
         </Modal>

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ClienteService } from '../services/clienteService.ts';
+import ClienteService from '../services/clienteService.ts';
+import type { Cliente } from '../types/api';
 import type { ClienteFilter, CriarClienteRequest, AtualizarClienteRequest } from '../types/api';
 
 // Query Keys
@@ -105,6 +106,26 @@ export function useRemoverCliente() {
 /**
  * Hook para buscar cliente por nome
  */
+/**
+ * Hook para desativar um cliente (soft delete)
+ */
+export function useSoftDeleteCliente() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => ClienteService.softDeleteCliente(id),
+    onSuccess: (_, id) => {
+      // Atualizar o cache para marcar o cliente como removido
+      queryClient.setQueryData(CLIENTE_QUERY_KEYS.detail(id), (old: Cliente | undefined) => 
+        old ? { ...old, removido: true, removido_em: new Date().toISOString() } : undefined
+      );
+      
+      // Invalidar listas de clientes para refletir a mudança
+      queryClient.invalidateQueries({ queryKey: CLIENTE_QUERY_KEYS.lists() });
+    },
+  });
+}
+
 export function useBuscarClientePorNome(nome: string, enabled: boolean = true) {
   return useQuery({
     queryKey: [...CLIENTE_QUERY_KEYS.all, 'buscar-nome', nome],

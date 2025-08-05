@@ -1,28 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import type { Reserva, Produto } from '../types/api';
+import type { OrcamentoAgrupado } from '../types/orcamento';
 import Button from './ui/Button.tsx';
 import Input from './ui/Input.tsx';
 import { useProdutos } from '../hooks/useProdutos.ts';
 import { useClientes } from '../hooks/useClientes.ts';
-
-// Permite receber tanto Reserva (um item) quanto OrcamentoAgrupado (múltiplos itens)
-interface OrcamentoAgrupado {
-  id_reserva: number;
-  id_cliente: number;
-  cliente_nome: string;
-  data_inicio: string;
-  data_fim: string;
-  status: string;
-  itens: {
-    id_item_reserva: number;
-    id_produto: number;
-    produto_nome: string;
-    quantidade: number;
-    valor_unitario?: number;
-  }[];
-  valor_total: number;
-  observacoes?: string;
-}
+import { jwtFetch } from '../services/jwtFetch.ts';
+import { formatCurrency } from '../utils/formatters.ts';
 
 type OrcamentoFormProps = {
   orcamento?: Reserva | OrcamentoAgrupado;
@@ -39,64 +23,117 @@ interface ItemOrcamento {
 }
 
 const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onCancel, locais, atualizarClientes, atualizarLocais }) => {
-  // Estado para busca de produto por item
+  // Estado inicial e props
   const [buscasLocais, setBuscasLocais] = useState<string[]>([]);
   const [frete, setFrete] = useState(0);
   const [desconto, setDesconto] = useState(0);
-  const [id_local, setIdLocal] = useState(orcamento?.id_local || 0);
+  const [id_local, setIdLocal] = useState(0);
+  
   // Modal de cadastro rápido
   const [showNovoCliente, setShowNovoCliente] = useState(false);
   const [novoCliente, setNovoCliente] = useState({ nome: '', telefone: '', email: '', cpf_cnpj: '' });
   const [showNovoLocal, setShowNovoLocal] = useState(false);
   const [novoLocal, setNovoLocal] = useState({ descricao: '', endereco: '', capacidade: '', tipo: '' });
-  // Para armazenar o id do local recém-criado
+  
+  // Para armazenar IDs recém-criados
   const [novoIdLocal, setNovoIdLocal] = useState<number | null>(null);
-  // Para armazenar o id do cliente recém-criado
   const [novoIdCliente, setNovoIdCliente] = useState<number | null>(null);
-  // ...existing code...
-  // Importação do serviço de orçamento
-  // Se não existir, crie em src/services/OrcamentoService.ts
-  // import OrcamentoService from '../services/OrcamentoService';
+
+  // Hooks
   const { data: produtosData } = useProdutos();
   const produtos: Produto[] = produtosData?.data || [];
   const { data: clientesData } = useClientes();
   const [clientes, setClientes] = useState<any[]>(clientesData?.data || []);
 
+  // Estado do formulário
+  const [id_cliente, setIdCliente] = useState(0);
+  const [data_inicio, setDataInicio] = useState('');
+  const [data_fim, setDataFim] = useState('');
+  const [observacoes, setObservacoes] = useState('');
+  const [itens, setItens] = useState<ItemOrcamento[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   // Atualiza clientes quando hook retorna
   useEffect(() => {
     setClientes(clientesData?.data || []);
   }, [clientesData]);
+
   // Seleciona automaticamente o local recém-criado quando a lista de locais muda
-  React.useEffect(() => {
-    if (novoIdLocal && locais.some(l => l.id_local === novoIdLocal)) {
+  useEffect(() => {
+    if (novoIdLocal && locais.some(l => (l.id_local || l.id) === novoIdLocal)) {
       setIdLocal(novoIdLocal);
       setNovoIdLocal(null);
     }
   }, [locais, novoIdLocal]);
 
   // Seleciona automaticamente o cliente recém-criado quando a lista de clientes muda
-  React.useEffect(() => {
+  useEffect(() => {
     if (novoIdCliente && clientes.some(c => c.id_cliente === novoIdCliente)) {
       setIdCliente(novoIdCliente);
       setNovoIdCliente(null);
     }
   }, [clientes, novoIdCliente]);
 
-  // Suporte a múltiplos itens (OrcamentoAgrupado)
-  const [id_cliente, setIdCliente] = useState(orcamento ? ('itens' in orcamento ? orcamento.id_cliente : orcamento.id_cliente) : 0);
-  const [data_inicio, setDataInicio] = useState(orcamento ? ('itens' in orcamento ? orcamento.data_inicio.split('T')[0] : orcamento.data_inicio?.split('T')[0] ?? '') : '');
-  const [data_fim, setDataFim] = useState(orcamento ? ('itens' in orcamento ? orcamento.data_fim.split('T')[0] : orcamento.data_fim?.split('T')[0] ?? '') : '');
-  const [observacoes, setObservacoes] = useState(orcamento ? ('itens' in orcamento ? orcamento.observacoes || '' : orcamento.observacoes || '') : '');
-  const [itens, setItens] = useState<ItemOrcamento[]>(
-    orcamento
-      ? ('itens' in orcamento
-          ? orcamento.itens.map(i => ({ id_produto: i.id_produto, quantidade: i.quantidade }))
-          : [{ id_produto: orcamento.id_produto, quantidade: orcamento.quantidade }])
-      : []
-  );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [produtoBusca, setProdutoBusca] = useState('');
+  // Carrega dados do orçamento para edição
+  useEffect(() => {
+    if (orcamento) {
+      if ('itens' in orcamento) {
+        // OrcamentoAgrupado
+        setIdCliente(orcamento.id_cliente || 0);
+        // Busca id_local tanto no formato original quanto mapeado
+        const localId = orcamento.id_local || (orcamento as any).id_local || 0;
+        setIdLocal(localId);
+        setDataInicio(orcamento.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
+        setDataFim(orcamento.data_fim ? orcamento.data_fim.split('T')[0] : '');
+        setObservacoes(orcamento.observacoes || '');
+        setFrete((orcamento as any).frete || 0);
+        setDesconto((orcamento as any).desconto || 0);
+        setItens(orcamento.itens.map(i => ({ id_produto: i.id_produto, quantidade: i.quantidade })));
+        
+        // Inicializa buscas locais com nomes dos produtos
+        const buscas = orcamento.itens.map(item => item.produto_nome || '');
+        setBuscasLocais(buscas);
+        
+        console.log('Carregando OrcamentoAgrupado para edição:', {
+          id_reserva: orcamento.id_reserva,
+          id_cliente: orcamento.id_cliente,
+          id_local: localId,
+          frete: (orcamento as any).frete,
+          desconto: (orcamento as any).desconto,
+          itens: orcamento.itens
+        });
+      } else {
+        // Reserva individual
+        setIdCliente(orcamento.id_cliente || 0);
+        setIdLocal(orcamento.id_local || 0);
+        setDataInicio(orcamento.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
+        setDataFim(orcamento.data_fim ? orcamento.data_fim.split('T')[0] : '');
+        setObservacoes(orcamento.observacoes || '');
+        setFrete(orcamento.frete || 0);
+        setDesconto(orcamento.desconto || 0);
+        setItens([{ id_produto: orcamento.id_produto, quantidade: orcamento.quantidade }]);
+        
+        // Inicializa busca local com nome do produto
+        const produto = produtos.find(p => p.id_produto === orcamento.id_produto);
+        setBuscasLocais([produto?.nome || '']);
+        
+        console.log('Carregando Reserva individual para edição:', {
+          id_cliente: orcamento.id_cliente,
+          id_local: orcamento.id_local,
+          frete: orcamento.frete,
+          desconto: orcamento.desconto
+        });
+      }
+    } else {
+      // Novo orçamento - inicializar com pelo menos um item
+      if (itens.length === 0) {
+        setItens([{ id_produto: 0, quantidade: 1 }]);
+        setBuscasLocais(['']);
+        console.log('Inicializando novo orçamento');
+      }
+    }
+  }, [orcamento, produtos]);
 
   // Cálculo de dias
   const diasReservados = (() => {
@@ -113,44 +150,46 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
   const dataFimValida = data_fim && new Date(data_fim) > dataHoje;
   const periodoValido = diasReservados > 0 && diasReservados <= 30;
 
-  // Produtos filtrados para busca
-  const produtosFiltrados = produtoBusca
-    ? produtos.filter(p => p.nome.toLowerCase().includes(produtoBusca.toLowerCase()))
-    : produtos;
-
   // Valor total do orçamento
   const valorItens = itens.reduce((total, item) => {
+    // Só calcula se temos um produto válido selecionado
+    if (!item.id_produto || item.id_produto === 0) return total;
+    
     const produto = produtos.find(p => p.id_produto === item.id_produto);
-    if (produto && typeof produto.valor_locacao === 'number' && !isNaN(produto.valor_locacao)) {
-      return total + (produto.valor_locacao * item.quantidade * diasReservados);
-    }
-    return total;
+    if (!produto || !produto.valor_locacao) return total;
+    
+    const valorLocacao = Number(produto.valor_locacao);
+    const quantidade = Number(item.quantidade) || 0;
+    
+    if (isNaN(valorLocacao) || quantidade <= 0) return total;
+    
+    return total + (valorLocacao * quantidade * diasReservados);
   }, 0);
-  const valorTotal = Math.max(0, valorItens + frete - desconto);
+  const valorTotal = Math.max(0, Number(valorItens) + Number(frete) - Number(desconto));
 
-  useEffect(() => {
-    if (orcamento) {
-      if ('itens' in orcamento) {
-        setIdCliente(orcamento.id_cliente || 0);
-        setDataInicio(orcamento.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
-        setDataFim(orcamento.data_fim ? orcamento.data_fim.split('T')[0] : '');
-        setObservacoes(orcamento.observacoes || '');
-        setItens(orcamento.itens.map(i => ({ id_produto: i.id_produto, quantidade: i.quantidade })));
-      } else {
-        setIdCliente(orcamento.id_cliente || 0);
-        setDataInicio(orcamento.data_inicio ? orcamento.data_inicio.split('T')[0] : '');
-        setDataFim(orcamento.data_fim ? orcamento.data_fim.split('T')[0] : '');
-        setObservacoes(orcamento.observacoes || '');
-        setItens([{ id_produto: orcamento.id_produto, quantidade: orcamento.quantidade }]);
-      }
-    }
-  }, [orcamento]);
+  // Debug do cálculo do valor total
+  console.log('Cálculo do valor total:', {
+    itens: itens.map(item => ({
+      id_produto: item.id_produto,
+      quantidade: item.quantidade,
+      produto: produtos.find(p => p.id_produto === item.id_produto)?.nome,
+      valor_locacao: produtos.find(p => p.id_produto === item.id_produto)?.valor_locacao
+    })),
+    diasReservados,
+    valorItens,
+    frete,
+    desconto,
+    valorTotal
+  });
 
   const handleItemChange = (index: number, field: keyof ItemOrcamento, value: any) => {
     setItens((prev) =>
-      prev.map((item, i) =>
-        i === index ? { ...item, [field]: field === 'quantidade' ? Number(value) : Number(value) } : item
-      )
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        
+        const newValue = field === 'id_produto' ? Number(value) : Number(value) || 0;
+        return { ...item, [field]: newValue };
+      })
     );
   };
 
@@ -168,13 +207,47 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
     e.preventDefault();
     setLoading(true);
     setError(null);
+    
     if (!dataInicioValida || !dataFimValida || !periodoValido) {
       setError('Selecione datas futuras e período de até 30 dias.');
       setLoading(false);
       return;
     }
+    
+    // Validação básica dos itens
+    if (itens.length === 0) {
+      setError('Adicione pelo menos um item ao orçamento.');
+      setLoading(false);
+      return;
+    }
+    
+    const itensInvalidos = itens.filter(item => {
+      if (!item.id_produto || item.quantidade <= 0) return true;
+      const produto = produtos.find(p => p.id_produto === item.id_produto);
+      return !produto || !produto.valor_locacao;
+    });
+    if (itensInvalidos.length > 0) {
+      setError('Todos os itens devem ter produto válido selecionado e quantidade maior que zero.');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      // Chamada à API para salvar orçamento (múltiplos itens)
+      const isEdicao = orcamento && ('itens' in orcamento ? orcamento.id_reserva : false);
+      
+      console.log('Enviando orçamento:', {
+        isEdicao,
+        id_reserva: isEdicao ? orcamento.id_reserva : null,
+        id_cliente,
+        id_local,
+        data_inicio,
+        data_fim,
+        frete,
+        desconto,
+        itens
+      });
+      
+      // Preparar payload dos itens
       const itensPayload = itens.map(item => ({
         id_cliente,
         id_local,
@@ -183,38 +256,65 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
         id_produto: item.id_produto,
         quantidade: item.quantidade,
         status: 'iniciada',
-        observacoes
+        observacoes,
+        frete,
+        desconto
       }));
-      const response = await fetch('http://localhost:4000/reservas/orcamento-multiplo', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ itens: itensPayload }),
-      });
+      
+      let response;
+      
+      if (isEdicao) {
+        // Atualizar orçamento existente
+        response = await jwtFetch('http://localhost:4000/api/reservas/atualizar-orcamento', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            id_reserva: orcamento.id_reserva,
+            itens: itensPayload 
+          }),
+        });
+      } else {
+        // Criar novo orçamento
+        response = await jwtFetch('http://localhost:4000/api/reservas/orcamento-multiplo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ itens: itensPayload }),
+        });
+      }
+      
       if (!response.ok) {
-        throw new Error('Erro ao salvar orçamento');
+        const errorData = await response.text();
+        console.error('Erro na resposta:', response.status, errorData);
+        throw new Error(`Erro ${response.status}: ${errorData}`);
       }
-      // Corrige o id_reserva de todos os itens para o id_reserva retornado
+      
       const data = await response.json();
-      if (data && data.id_reserva) {
-        data.data?.forEach((item: any) => { item.id_reserva = data.id_reserva; });
+      console.log('Resposta da API:', data);
+      
+      if (data.success) {
+        onSuccess();
+      } else {
+        setError(data.message || 'Erro ao salvar orçamento');
       }
-      onSuccess();
     } catch (err: any) {
-      setError('Erro ao salvar orçamento.');
+      console.error('Erro ao salvar orçamento:', err);
+      setError(`Erro ao salvar orçamento: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form id="orcamento-form" onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block font-medium">Cliente</label>
         <select
           name="id_cliente"
-          value={id_cliente}
+          value={id_cliente || 0}
           onChange={e => {
             if (e.target.value === 'novo') {
               setShowNovoCliente(true);
@@ -245,7 +345,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                 <Button type="button" variant="outline" onClick={() => { setShowNovoCliente(false); setNovoCliente({ nome: '', telefone: '', email: '', cpf_cnpj: '' }); }}>Cancelar</Button>
                 <Button type="button" onClick={async () => {
                   if (!novoCliente.nome.trim()) return;
-                  const resp = await fetch('http://localhost:4000/clientes', {
+                  const resp = await jwtFetch('http://localhost:4000/api/clientes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(novoCliente)
@@ -254,13 +354,13 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                     const novo = await resp.json();
                     setShowNovoCliente(false);
                     setNovoCliente({ nome: '', telefone: '', email: '', cpf_cnpj: '' });
-                    fetch('http://localhost:4000/clientes')
-                      .then(r => r.json())
-                      .then(data => {
-                        setClientes(data?.data || []);
-                        setNovoIdCliente(novo.data?.id_cliente || 0);
-                        if (atualizarClientes) atualizarClientes();
-                      });
+                    const clientesResp = await jwtFetch('http://localhost:4000/api/clientes');
+                    if (clientesResp.ok) {
+                      const data = await clientesResp.json();
+                      setClientes(data?.data || []);
+                      setNovoIdCliente(novo.data?.id_cliente || 0);
+                      if (atualizarClientes) atualizarClientes();
+                    }
                   }
                 }}>Salvar</Button>
               </div>
@@ -304,7 +404,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                 <Button type="button" onClick={async () => {
                   if (!novoLocal.descricao.trim()) return;
                   const payload = { ...novoLocal, capacidade: novoLocal.capacidade ? Number(novoLocal.capacidade) : undefined };
-                  const resp = await fetch('http://localhost:4000/locais', {
+                  const resp = await jwtFetch('http://localhost:4000/api/locais', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -313,13 +413,9 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                     const novo = await resp.json();
                     setShowNovoLocal(false);
                     setNovoLocal({ descricao: '', endereco: '', capacidade: '', tipo: '' });
-                    fetch('http://localhost:4000/locais')
-                      .then(r => r.json())
-                      .then(data => {
-                        // Atualização automática: seleciona o novo local quando a lista de locais recebida por prop for atualizada
-                        setNovoIdLocal(novo.data?.id_local || 0);
-                        if (atualizarLocais) atualizarLocais();
-                      });
+                    // Atualização automática: seleciona o novo local quando a lista de locais recebida por prop for atualizada
+                    setNovoIdLocal(novo.data?.id_local || 0);
+                    if (atualizarLocais) atualizarLocais();
                   }
                 }}>Salvar</Button>
               </div>
@@ -391,17 +487,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
         <label className="block font-medium mb-2">Itens do Orçamento</label>
         {itens.map((item, idx) => {
           const produto = produtos.find(p => p.id_produto === item.id_produto);
-          let valorUnit = 0;
-          let preco;
-          let valorItem;
-          if (item.id_produto && item.id_produto !== 0 && produto && typeof produto.valor_locacao === 'number' && !isNaN(produto.valor_locacao)) {
-            valorUnit = Number(produto.valor_locacao);
-            preco = `R$ ${valorUnit.toFixed(2)}`;
-            valorItem = `R$ ${(valorUnit * item.quantidade * diasReservados).toFixed(2)}`;
-          } else {
-            preco = 'R$ 0,00';
-            valorItem = 'R$ 0,00';
-          }
+          
           // Busca local para este item
           // Se houver produto selecionado, sincroniza o campo de busca com o nome do produto
           let buscaLocal = buscasLocais[idx] || '';
@@ -434,14 +520,21 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                   placeholder="Selecione ou busque..."
                   value={buscaLocal}
                   onChange={handleBuscaLocalChange}
-                  className="border rounded px-3 py-2 w-full"
+                  className={`border rounded px-3 py-2 w-full ${
+                    item.id_produto === 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  }`}
                   list={`produtos-list-${idx}`}
                   autoComplete="off"
                   required
                   onBlur={e => {
                     // Se o valor digitado corresponder a um produto, seleciona
                     const prod = produtosDisponiveis.find(p => p.nome.toLowerCase() === e.target.value.toLowerCase());
-                    if (prod) handleItemChange(idx, 'id_produto', prod.id_produto);
+                    if (prod) {
+                      handleItemChange(idx, 'id_produto', prod.id_produto);
+                    } else if (e.target.value && !prod) {
+                      // Se digitou algo mas não encontrou produto, limpa a seleção
+                      handleItemChange(idx, 'id_produto', 0);
+                    }
                   }}
                 />
                 <datalist id={`produtos-list-${idx}`}>
@@ -481,7 +574,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
         />
       </div>
       <div className="mt-4 text-lg font-bold text-blue-800">
-        Valor total do orçamento: R$ {valorTotal.toFixed(2)}
+        Valor total do orçamento: {formatCurrency(valorTotal)}
       </div>
       {/* Resumo dos itens do orçamento */}
       {itens.length > 0 && (
@@ -506,24 +599,38 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                   <tr key={idx} className="border-t">
                     <td className="p-2">{produto.nome}</td>
                     <td className="p-2 text-right">{item.quantidade}</td>
-                    <td className="p-2 text-right">R$ {valorUnit.toFixed(2)}</td>
-                    <td className="p-2 text-right">R$ {valorTotalItem.toFixed(2)}</td>
+                    <td className="p-2 text-right">{formatCurrency(valorUnit)}</td>
+                    <td className="p-2 text-right">{formatCurrency(valorTotalItem)}</td>
                   </tr>
                 );
               })}
             </tbody>
+            <tfoot className="bg-gray-50 border-t-2">
+              <tr>
+                <td colSpan={3} className="p-2 text-right font-medium">Subtotal dos itens:</td>
+                <td className="p-2 text-right font-medium">{formatCurrency(valorItens)}</td>
+              </tr>
+              {frete > 0 && (
+                <tr>
+                  <td colSpan={3} className="p-2 text-right">Frete:</td>
+                  <td className="p-2 text-right">+ {formatCurrency(frete)}</td>
+                </tr>
+              )}
+              {desconto > 0 && (
+                <tr>
+                  <td colSpan={3} className="p-2 text-right">Desconto:</td>
+                  <td className="p-2 text-right">- {formatCurrency(desconto)}</td>
+                </tr>
+              )}
+              <tr className="border-t">
+                <td colSpan={3} className="p-2 text-right font-bold">Total Final:</td>
+                <td className="p-2 text-right font-bold text-blue-700">{formatCurrency(valorTotal)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
       {error && <div className="text-red-500">{error}</div>}
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button type="submit" loading={loading}>
-          Salvar
-        </Button>
-      </div>
     </form>
   );
 };

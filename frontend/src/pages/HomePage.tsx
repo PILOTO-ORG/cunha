@@ -167,55 +167,77 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-          <div className="w-full max-w-7xl px-4 sm:px-8 py-10 mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-              {[ 
-                {
-                  name: 'Produtos',
-                  description: 'Gerencie o catálogo e estoque',
-                  icon: '🛒',
-                  path: '/produtos',
-                  color: 'bg-blue-500'
-                },
-                {
-                  name: 'Clientes',
-                  description: 'Cadastro e histórico de clientes',
-                  icon: '👥',
-                  path: '/clientes',
-                  color: 'bg-green-500'
-                },
-                {
-                  name: 'Orçamentos',
-                  description: 'Criação e aprovação de orçamentos',
-                  icon: '📊',
-                  path: '/orcamentos',
-                  color: 'bg-yellow-500'
-                },
-                {
-                  name: 'Reservas',
-                  description: 'Controle de reservas e eventos',
-                  icon: '📅',
-                  path: '/reservas',
-                  color: 'bg-purple-500'
-                }
-              ].map((module) => (
-                <Link
-                  key={module.name}
-                  to={module.path}
-                  className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow group flex flex-col items-center justify-center text-center"
-                >
-                  <div className={`${module.color} p-5 rounded-full mb-4 group-hover:scale-110 transition-transform flex items-center justify-center`}>
-                    <span className="text-3xl text-white">{module.icon}</span>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 text-lg mb-2">{module.name}</h3>
-                  <p className="text-sm text-gray-500">{module.description}</p>
-                </Link>
-              ))}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 mx-auto">
+        <h2 className="text-2xl font-bold text-gray-900 mb-8 px-2">Módulos do Sistema</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          {[ 
+            {
+              name: 'Produtos',
+              description: 'Gerencie o catálogo e estoque',
+              icon: '🛒',
+              path: '/produtos',
+              color: 'bg-blue-500 hover:bg-blue-600',
+              bgHover: 'hover:bg-blue-50'
+            },
+            {
+              name: 'Clientes',
+              description: 'Cadastro e histórico de clientes',
+              icon: '👥',
+              path: '/clientes',
+              color: 'bg-green-500 hover:bg-green-600',
+              bgHover: 'hover:bg-green-50'
+            },
+            {
+              name: 'Locais',
+              description: 'Gerenciar locais de eventos',
+              icon: '🏢',
+              path: '/locais',
+              color: 'bg-indigo-500 hover:bg-indigo-600',
+              bgHover: 'hover:bg-indigo-50'
+            },
+            {
+              name: 'Orçamentos',
+              description: 'Criação e aprovação de orçamentos',
+              icon: '📊',
+              path: '/orcamentos',
+              color: 'bg-yellow-500 hover:bg-yellow-600',
+              bgHover: 'hover:bg-yellow-50'
+            },
+            {
+              name: 'Reservas',
+              description: 'Controle de reservas e eventos',
+              icon: '📅',
+              path: '/reservas',
+              color: 'bg-purple-500 hover:bg-purple-600',
+              bgHover: 'hover:bg-purple-50'
+            },
+            {
+              name: 'Movimentos',
+              description: 'Anotar entrada e saídas',
+              icon: '➕',
+              path: '/movimentos',
+              color: 'bg-indigo-500 hover:bg-indigo-600',
+              bgHover: 'hover:bg-indigo-50'
+            }
+          ].map((module) => (
+            <Link
+              key={module.name}
+              to={module.path}
+              className={`bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col items-center text-center ${module.bgHover} transform hover:-translate-y-1 active:translate-y-0`}
+            >
+              <div className={`${module.color} p-4 rounded-full mb-4 transition-all duration-300 flex items-center justify-center w-16 h-16`}>
+                <span className="text-3xl">{module.icon}</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-1.5">{module.name}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 leading-tight px-1">{module.description}</p>
+            </Link>
+          ))}
             </div>
           </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4 px-2">Indicadores</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {dashboardData.map((card, index) => (
             <DashboardCard
               key={index}

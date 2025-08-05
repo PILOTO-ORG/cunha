@@ -24,12 +24,13 @@ const colors = {
 };
 
 // Função para fazer requisições à API
+const { jwtFetch } = require('../src/services/jwtFetch');
 async function makeRequest(payload, description) {
   console.log(`${colors.blue}🔍 Testando: ${description}${colors.reset}`);
   console.log(`${colors.cyan}Payload:${colors.reset}`, JSON.stringify(payload, null, 2));
   
   try {
-    const response = await fetch(API_BASE_URL, {
+    const response = await jwtFetch(API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

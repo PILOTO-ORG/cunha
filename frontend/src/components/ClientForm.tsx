@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useCriarCliente, useAtualizarCliente } from '../hooks/useClientes.ts';
 import Button from './ui/Button.tsx';
 import Input from './ui/Input.tsx';
-import { Cliente } from '../types/api';
+import { Cliente, AtualizarClienteRequest, CriarClienteRequest } from '../types/api.ts';
+import { toast } from 'react-hot-toast';
 
 interface ClientFormProps {
   client?: Cliente | null;
@@ -15,7 +16,10 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
     nome: '',
     telefone: '',
     email: '',
-    cpf_cnpj: ''
+    cpf_cnpj: '',
+    rg_inscricao_estadual: '',
+    endereco: '',
+    cep: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -31,7 +35,10 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
         nome: client.nome || '',
         telefone: client.telefone || '',
         email: client.email || '',
-        cpf_cnpj: client.cpf_cnpj || ''
+        cpf_cnpj: client.cpf_cnpj || '',
+        rg_inscricao_estadual: client.rg_inscricao_estadual || '',
+        endereco: client.endereco || '',
+        cep: client.cep || ''
       });
     }
   }, [client]);
@@ -56,6 +63,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
+    // Required fields validation
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome é obrigatório';
     }
@@ -72,8 +80,17 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
       newErrors.email = 'Email deve ter um formato válido';
     }
 
-    if (formData.cpf_cnpj && !validateCPFCNPJ(formData.cpf_cnpj)) {
-      newErrors.cpf_cnpj = 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos';
+    // Optional fields validation
+    if (formData.cpf_cnpj) {
+      if (!validateCPFCNPJ(formData.cpf_cnpj)) {
+        newErrors.cpf_cnpj = 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos';
+      }
+    }
+
+    if (formData.cep) {
+      if (!/^\d{5}-?\d{3}$/.test(formData.cep)) {
+        newErrors.cep = 'CEP deve estar no formato 00000-000';
+      }
     }
 
     setErrors(newErrors);
@@ -87,25 +104,53 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
       return;
     }
 
-    const submitData = {
+    const baseData: CriarClienteRequest = {
       nome: formData.nome.trim(),
-      telefone: formData.telefone.trim(),
+      telefone: formData.telefone.trim().replace(/\D/g, ''),
       email: formData.email.trim(),
-      cpf_cnpj: formData.cpf_cnpj.trim() || undefined
+      cpf_cnpj: formData.cpf_cnpj ? formData.cpf_cnpj.trim().replace(/\D/g, '') : undefined,
+      rg_inscricao_estadual: formData.rg_inscricao_estadual.trim() || undefined,
+      endereco: formData.endereco.trim() || undefined,
+      cep: formData.cep ? formData.cep.trim().replace(/\D/g, '') : undefined
     };
 
     try {
       if (isEditing && client) {
-        await updateMutation.mutateAsync({
-          id: client.id_cliente,
-          dados: submitData
-        });
+        const updateData: Partial<AtualizarClienteRequest> = { ...baseData };
+        
+        // Only include fields that have changed to minimize the payload
+        const changedData = Object.entries(updateData).reduce((acc, [key, value]) => {
+          const clientValue = client[key as keyof Cliente];
+          // Only include if the value has actually changed
+          if (clientValue !== value) {
+            acc[key as keyof AtualizarClienteRequest] = value as any;
+          }
+          return acc;
+        }, {} as Partial<AtualizarClienteRequest>);
+
+        if (Object.keys(changedData).length > 0) {
+          await updateMutation.mutateAsync({
+            id: client.id_cliente,
+            dados: changedData
+          });
+          toast.success('Cliente atualizado com sucesso!');
+        } else {
+          toast('Nenhuma alteração detectada', { icon: 'ℹ️' });
+          onSuccess?.();
+          return;
+        }
       } else {
-        await createMutation.mutateAsync(submitData);
+        // For new clients, include all fields
+        await createMutation.mutateAsync({
+          ...baseData,
+          removido: false // Ensure new clients are not marked as removed
+        });
+        toast.success('Cliente criado com sucesso!');
       }
       onSuccess?.();
     } catch (error) {
       console.error('Erro ao salvar cliente:', error);
+      toast.error('Erro ao salvar cliente. Por favor, tente novamente.');
     }
   };
 
@@ -132,6 +177,12 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
     } else {
       return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
+  };
+
+  const formatCEP = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 5) return digits;
+    return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
@@ -189,23 +240,74 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
         </div>
       </div>
 
-      <div>
-        <label htmlFor="cpf_cnpj" className="block text-sm font-medium text-gray-700 mb-1">
-          CPF/CNPJ
-        </label>
-        <Input
-          id="cpf_cnpj"
-          type="text"
-          value={formData.cpf_cnpj}
-          onChange={(e) => {
-            const formatted = formatCPFCNPJ(e.target.value);
-            handleChange('cpf_cnpj', formatted);
-          }}
-          placeholder="000.000.000-00 ou 00.000.000/0001-00"
-          error={errors.cpf_cnpj}
-          className="mb-0"
-          maxLength={18}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="cpf_cnpj" className="block text-sm font-medium text-gray-700 mb-1">
+            CPF/CNPJ
+          </label>
+          <Input
+            id="cpf_cnpj"
+            type="text"
+            value={formData.cpf_cnpj}
+            onChange={(e) => {
+              const formatted = formatCPFCNPJ(e.target.value);
+              handleChange('cpf_cnpj', formatted);
+            }}
+            placeholder="000.000.000-00 ou 00.000.000/0001-00"
+            error={errors.cpf_cnpj}
+            className="mb-0"
+            maxLength={18}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="rg_inscricao_estadual" className="block text-sm font-medium text-gray-700 mb-1">
+            RG / Inscrição Estadual
+          </label>
+          <Input
+            id="rg_inscricao_estadual"
+            type="text"
+            value={formData.rg_inscricao_estadual}
+            onChange={(e) => handleChange('rg_inscricao_estadual', e.target.value)}
+            placeholder="Digite o RG ou Inscrição Estadual"
+            className="mb-0"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="cep" className="block text-sm font-medium text-gray-700 mb-1">
+            CEP
+          </label>
+          <Input
+            id="cep"
+            type="text"
+            value={formData.cep}
+            onChange={(e) => {
+              const formatted = formatCEP(e.target.value);
+              handleChange('cep', formatted);
+            }}
+            placeholder="00000-000"
+            error={errors.cep}
+            className="mb-0"
+            maxLength={9}
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="endereco" className="block text-sm font-medium text-gray-700 mb-1">
+            Endereço Completo
+          </label>
+          <Input
+            id="endereco"
+            type="text"
+            value={formData.endereco}
+            onChange={(e) => handleChange('endereco', e.target.value)}
+            placeholder="Rua, número, complemento, bairro, cidade - UF"
+            className="mb-0"
+          />
+        </div>
       </div>
 
       <div className="flex justify-end space-x-3 pt-4 border-t">

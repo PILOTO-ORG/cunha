@@ -95,13 +95,26 @@ export class ProdutoService {
   }
 
   /**
-   * Remove um produto
+   * Remove um produto (hard delete)
    * 
    * @param id - ID do produto
    * @returns Promise com confirmação
    */
   static async removerProduto(id: number): Promise<{ success: boolean }> {
     const response = await apiClient.delete<{ success: boolean }>(`/produtos/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Remove um produto logicamente (soft delete)
+   * 
+   * @param id - ID do produto
+   * @returns Promise com o produto atualizado
+   */
+  static async softDeleteProduto(id: number): Promise<Produto> {
+    const response = await apiClient.patch<Produto>(`/produtos/${id}`, { 
+      removido: true 
+    });
     return response.data;
   }
 

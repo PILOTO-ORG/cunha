@@ -1,12 +1,18 @@
 import React from 'react';
 
-interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
+interface LoadingSpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   color?: string;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', color = 'primary' }) => {
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+  size = 'md', 
+  color = 'primary',
+  className = '',
+  ...props 
+}) => {
   const sizeClasses = {
+    xs: 'h-3 w-3',
     sm: 'h-4 w-4',
     md: 'h-6 w-6',
     lg: 'h-8 w-8',
@@ -15,7 +21,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', color = 'p
   const colorClasses = color === 'primary' ? 'text-primary-600' : `text-${color}`;
 
   return (
-    <div className="flex justify-center items-center">
+    <div className={`flex justify-center items-center ${className}`} {...props}>
       <svg
         className={`animate-spin ${sizeClasses[size]} ${colorClasses}`}
         fill="none"

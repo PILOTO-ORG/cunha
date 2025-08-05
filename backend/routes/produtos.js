@@ -9,6 +9,7 @@ router.get('/', produtosController.listarProdutos);
 router.post('/', produtosController.criarProduto);
 router.get('/:id', produtosController.buscarProduto);
 router.put('/:id', produtosController.atualizarProduto);
+router.patch('/:id', produtosController.atualizarProduto);
 router.delete('/:id', produtosController.removerProduto);
 
 module.exports = router;

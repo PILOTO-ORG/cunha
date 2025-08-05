@@ -31,10 +31,10 @@ exports.buscarLocal = async (req, res, next) => {
 
 exports.criarLocal = async (req, res, next) => {
   try {
-    const { descricao, endereco, capacidade, tipo } = req.body;
+    const { descricao, endereco, capacidade, tipo, observacoes } = req.body;
     const result = await pool.query(
-      'INSERT INTO erp.locais (descricao, endereco, capacidade, tipo) VALUES ($1, $2, $3, $4) RETURNING *',
-      [descricao, endereco, capacidade, tipo]
+      'INSERT INTO erp.locais (descricao, endereco, capacidade, tipo, observacoes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [descricao, endereco, capacidade, tipo, observacoes || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) { next(err); }
@@ -43,10 +43,10 @@ exports.criarLocal = async (req, res, next) => {
 exports.atualizarLocal = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { descricao, endereco, capacidade, tipo } = req.body;
+    const { descricao, endereco, capacidade, tipo, observacoes } = req.body;
     const result = await pool.query(
-      'UPDATE erp.locais SET descricao=$1, endereco=$2, capacidade=$3, tipo=$4 WHERE id_local=$5 RETURNING *',
-      [descricao, endereco, capacidade, tipo, id]
+      'UPDATE erp.locais SET descricao=$1, endereco=$2, capacidade=$3, tipo=$4, observacoes=$5 WHERE id_local=$6 RETURNING *',
+      [descricao, endereco, capacidade, tipo, observacoes || null, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Local não encontrado' });
     res.json(result.rows[0]);

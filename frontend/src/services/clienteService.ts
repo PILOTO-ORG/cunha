@@ -31,9 +31,32 @@ export class ClienteService {
    * @returns Promise com lista paginada de clientes
    */
   static async listarClientes(filtros?: ClienteFilter): Promise<PaginatedResponse<Cliente>> {
-    const params = filtros ? '?' + new URLSearchParams(filtros as any).toString() : '';
-    const response = await apiClient.get<PaginatedResponse<Cliente>>(`/clientes${params}`);
-    console.log('listarClientes response', response.data);
+    // Create a copy of filters to avoid mutating the original object
+    const queryParams = new URLSearchParams();
+    
+    // Add each filter parameter to the query string if it exists
+    if (filtros) {
+      Object.entries(filtros).forEach(([key, value]) => {
+        // Skip undefined or null values
+        if (value !== undefined && value !== null) {
+          // Convert boolean to string explicitly
+          const paramValue = typeof value === 'boolean' ? String(value) : String(value);
+          queryParams.append(key, paramValue);
+        }
+      });
+    }
+    
+    // Always ensure we're not showing removed clients by default
+    if (!queryParams.has('removido')) {
+      queryParams.append('removido', 'false');
+    }
+    
+    const queryString = queryParams.toString();
+    const url = `/clientes${queryString ? `?${queryString}` : ''}`;
+    
+    console.log('Fetching clients from:', url);
+    const response = await apiClient.get<PaginatedResponse<Cliente>>(url);
+    
     // Defensive: always return a PaginatedResponse with data as array
     if (response.data && Array.isArray(response.data.data)) {
       return response.data;
@@ -90,6 +113,17 @@ export class ClienteService {
    */
   static async removerCliente(id: number): Promise<{ success: boolean }> {
     const response = await apiClient.delete<{ success: boolean }>(`/clientes/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Soft delete a client by setting removido=true
+   * 
+   * @param id - ID of the client to deactivate
+   * @returns Promise with the updated client
+   */
+  static async softDeleteCliente(id: number): Promise<Cliente> {
+    const response = await apiClient.patch<Cliente>(`/clientes/${id}`, { removido: true });
     return response.data;
   }
 

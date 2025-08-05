@@ -102,7 +102,7 @@ export function useAtualizarProduto() {
 }
 
 /**
- * Hook para remover produto
+ * Hook para remover produto (hard delete)
  */
 export function useRemoverProduto() {
   const queryClient = useQueryClient();
@@ -114,6 +114,24 @@ export function useRemoverProduto() {
       queryClient.removeQueries({ queryKey: PRODUTO_QUERY_KEYS.detail(id) });
       
       // Invalidar listas de produtos
+      queryClient.invalidateQueries({ queryKey: PRODUTO_QUERY_KEYS.lists() });
+    },
+  });
+}
+
+/**
+ * Hook para remover produto logicamente (soft delete)
+ */
+export function useSoftDeleteProduto() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => ProdutoService.softDeleteProduto(id),
+    onSuccess: (data, id) => {
+      // Atualizar o cache do produto com a flag removido=true
+      queryClient.setQueryData(PRODUTO_QUERY_KEYS.detail(id), data);
+      
+      // Invalidar listas de produtos para refletir a remoção
       queryClient.invalidateQueries({ queryKey: PRODUTO_QUERY_KEYS.lists() });
     },
   });

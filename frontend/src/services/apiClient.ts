@@ -1,3 +1,5 @@
+
+// import removido: jwtFetch
 declare const process: {
   env: {
     REACT_APP_API_URL?: string;
@@ -74,10 +76,11 @@ class ApiClient {
     const token = getToken();
     const headers: Record<string, string> = { 'Accept': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers
-    });
+    const response = await fetch(url, { method: 'GET', headers });
+    if (response.status === 401) {
+      window.location.href = '/login';
+      return { success: false, data: undefined as any, error: 'Unauthorized' };
+    }
     if (!response.ok) {
       throw new ApiError(`HTTP Error: ${response.status} - ${response.statusText}`, response.status);
     }
@@ -95,6 +98,10 @@ class ApiClient {
       headers,
       body: body ? JSON.stringify(body) : undefined
     });
+    if (response.status === 401) {
+      window.location.href = '/login';
+      return { success: false, data: undefined as any, error: 'Unauthorized' };
+    }
     if (!response.ok) {
       throw new ApiError(`HTTP Error: ${response.status} - ${response.statusText}`, response.status);
     }
@@ -112,6 +119,10 @@ class ApiClient {
       headers,
       body: body ? JSON.stringify(body) : undefined
     });
+    if (response.status === 401) {
+      window.location.href = '/login';
+      return { success: false, data: undefined as any, error: 'Unauthorized' };
+    }
     if (!response.ok) {
       throw new ApiError(`HTTP Error: ${response.status} - ${response.statusText}`, response.status);
     }
@@ -137,10 +148,32 @@ class ApiClient {
     const token = getToken();
     const headers: Record<string, string> = { 'Accept': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(url, { method: 'DELETE', headers });
+    if (response.status === 401) {
+      window.location.href = '/login';
+      return { success: false, data: undefined as any, error: 'Unauthorized' };
+    }
+    if (!response.ok) {
+      throw new ApiError(`HTTP Error: ${response.status} - ${response.statusText}`, response.status);
+    }
+    const data = await response.json();
+    return { success: true, data };
+  }
+
+  async patch<T>(path: string, body?: any): Promise<ApiResponse<T>> {
+    const url = this.buildUrl(path);
+    const token = getToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
-      method: 'DELETE',
-      headers
+      method: 'PATCH',
+      headers,
+      body: body ? JSON.stringify(body) : undefined
     });
+    if (response.status === 401) {
+      window.location.href = '/login';
+      return { success: false, data: undefined as any, error: 'Unauthorized' };
+    }
     if (!response.ok) {
       throw new ApiError(`HTTP Error: ${response.status} - ${response.statusText}`, response.status);
     }

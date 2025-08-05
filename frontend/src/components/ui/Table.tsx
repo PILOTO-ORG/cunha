@@ -1,8 +1,9 @@
 import React from 'react';
 
-interface TableColumn<T> {
+export interface TableColumn<T> {
   header: string;
-  accessor: keyof T | ((item: T) => React.ReactNode);
+  accessor: keyof T | ((item: T) => string | number | null | undefined);
+  cell?: (item: T) => React.ReactNode;
   className?: string;
 }
 
@@ -11,13 +12,17 @@ interface TableProps<T> {
   columns: TableColumn<T>[];
   loading?: boolean;
   emptyMessage?: string;
+  rowClassName?: string;
+  onRowClick?: (item: T) => void;
 }
 
 function Table<T extends Record<string, any>>({ 
   data, 
   columns, 
   loading = false, 
-  emptyMessage = 'Nenhum item encontrado' 
+  emptyMessage = 'Nenhum item encontrado',
+  rowClassName = '',
+  onRowClick
 }: TableProps<T>) {
   if (loading) {
     return (
@@ -60,15 +65,22 @@ function Table<T extends Record<string, any>>({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {data.map((item, rowIndex) => (
-            <tr key={rowIndex} className="hover:bg-gray-50">
-              {columns.map((column, colIndex) => (
-                <td key={colIndex} className={`px-6 py-4 whitespace-nowrap text-sm ${column.className || ''}`}>
-                  {typeof column.accessor === 'function'
-                    ? column.accessor(item)
-                    : item[column.accessor as keyof T]
-                  }
-                </td>
-              ))}
+            <tr 
+              key={rowIndex} 
+              className={`${rowClassName} ${onRowClick ? 'cursor-pointer' : ''}`}
+              onClick={() => onRowClick?.(item)}
+            >
+              {columns.map((column, colIndex) => {
+                const cellContent = typeof column.accessor === 'function'
+                  ? column.accessor(item)
+                  : item[column.accessor as keyof T];
+                  
+                return (
+                  <td key={colIndex} className={`px-6 py-4 whitespace-nowrap text-sm ${column.className || ''}`}>
+                    {column.cell ? column.cell(item) : cellContent}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

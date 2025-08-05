@@ -128,11 +128,47 @@ export class ReservaService {
    * @param data_fim - Data de fim
    * @returns Promise com lista de reservas no período
    */
-  static async buscarPorPeriodo(data_inicio: string, data_fim: string): Promise<Reserva[]> {
-    const response = await apiClient.get<Reserva[]>('buscar_reservas_periodo', { 
-      data_inicio, 
-      data_fim 
+  static async buscarReservasPorPeriodo(data_inicio: string, data_fim: string): Promise<Reserva[]> {
+    const response = await apiClient.get<Reserva[]>('/reservas/buscar-periodo', {
+      params: { data_inicio, data_fim }
     });
+    return response.data;
+  }
+
+  /**
+   * Cria múltiplos itens de orçamento em uma única transação
+   * 
+   * @param itens - Array de itens de orçamento a serem criados
+   * @returns Promise com os itens criados e o ID do orçamento
+   */
+  static async criarOrcamentoMultiplo(itens: CriarReservaRequest[]): Promise<{
+    success: boolean;
+    message: string;
+    id_reserva: number;
+    data: Reserva[];
+  }> {
+    // Garante que todos os campos estejam presentes, mesmo que com valores padrão
+    const itensCompletos = itens.map(item => ({
+      id_cliente: item.id_cliente || 0,
+      id_local: item.id_local || null,
+      id_produto: item.id_produto || 0,
+      quantidade: item.quantidade || 1,
+      data_inicio: item.data_inicio || new Date().toISOString().split('T')[0],
+      data_fim: item.data_fim || new Date().toISOString().split('T')[0],
+      status: item.status || 'iniciada',
+      observacoes: item.observacoes || '',
+      link_drive: item.link_drive || '',
+      frete: item.frete || 0,
+      desconto: item.desconto || 0,
+      data_saida: item.data_saida || null,
+      data_retorno: item.data_retorno || null,
+      dias_reservados: item.dias_reservados || 1
+    }));
+
+    const response = await apiClient.post('/reservas/orcamento-multiplo', {
+      itens: itensCompletos
+    });
+    
     return response.data;
   }
 
@@ -144,7 +180,8 @@ export class ReservaService {
    * @returns Promise com a reserva atualizada
    */
   static async atualizarStatus(id: number, status: 'ativa' | 'concluída' | 'cancelada'): Promise<Reserva> {
-    const response = await apiClient.put<Reserva>('atualizar_status_reserva', {
+    // Corrige rota para /api/reservas/atualizar-status
+    const response = await apiClient.put<Reserva>('/api/reservas/atualizar-status', {
       id_item_reserva: id,
       status
     });

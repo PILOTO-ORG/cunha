@@ -12,7 +12,12 @@ const api = axios.create({
 // Interceptors para tratamento de erros
 api.interceptors.request.use(
   (config) => {
-    // Aqui você pode adicionar tokens de autenticação se necessário
+    // Adiciona o token JWT em todos os requests
+    const token = localStorage.getItem('jwt') || localStorage.getItem('jwtToken');
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -27,7 +32,7 @@ api.interceptors.response.use(
   (error) => {
     // Tratamento global de erros
     if (error.response?.status === 401) {
-      // Redirecionar para login se necessário
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

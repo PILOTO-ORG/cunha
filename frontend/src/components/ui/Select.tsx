@@ -1,9 +1,5 @@
 import React, { SelectHTMLAttributes } from 'react';
-
-interface Option {
-  value: string | number;
-  label: string;
-}
+import type { Option } from '../../types/select';
 
 interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> {
   label?: string;
