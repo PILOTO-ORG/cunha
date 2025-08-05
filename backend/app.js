@@ -17,9 +17,7 @@ const dashboardRouter = require('./routes/dashboard');
 
 // Configure CORS dynamically based on environment
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? 'http://34.136.172.18:4000'
-    : '*',
+  origin:'*',
   credentials: true
 };
 app.use(cors(corsOptions));
@@ -53,7 +51,13 @@ module.exports.asyncHandler = asyncHandler;
 
 // Definir porta pelo env ou padrão
 const PORT = process.env.PORT || 4000;
-// Início do servidor usando URL de produção se disponível
-app.listen(PORT, () => {
-  console.log(`Servidor rodando em ${config.apiUrl}`);
+// Definir o host para escutar em todas as interfaces de rede (essencial para Docker)
+const HOST = '0.0.0.0';
+
+// Início do servidor
+app.listen(PORT, HOST, () => {
+  // Alterando o log para ser mais preciso sobre onde o servidor está realmente escutando
+  console.log(`Servidor escutando em http://${HOST}:${PORT}`);
+  // A linha abaixo pode ser mantida se você ainda quiser logar a URL pública
+  // console.log(`URL pública (quando disponível): ${config.apiUrl}`);
 });
