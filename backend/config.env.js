@@ -9,7 +9,7 @@ const config = {
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
   },
   jwtSecret: process.env.JWT_SECRET || 'sua_jwt_secret',
-  apiUrl: process.env.API_URL || 'http://localhost:4000',
+  apiUrl: process.env.API_URL || 'http://34.136.172.18:4000',
 };
 
 module.exports = config;

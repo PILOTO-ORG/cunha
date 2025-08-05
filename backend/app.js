@@ -15,7 +15,14 @@ const movimentosRoutes = require('./routes/movimentos');
 const authRouter = require('./routes/auth');
 const dashboardRouter = require('./routes/dashboard');
 
-app.use(cors());
+// Configure CORS dynamically based on environment
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? 'http://34.136.172.18:4000'
+    : '*',
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const jwtMiddleware = require('./middleware/jwtMiddleware');
@@ -44,7 +51,9 @@ const asyncHandler = fn => (req, res, next) => {
 };
 module.exports.asyncHandler = asyncHandler;
 
-const PORT = 4000;
+// Definir porta pelo env ou padrão
+const PORT = process.env.PORT || 4000;
+// Início do servidor usando URL de produção se disponível
 app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log(`Servidor rodando em ${config.apiUrl}`);
 });
