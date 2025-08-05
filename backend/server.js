@@ -1,7 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
-const PORT = 4000;
 
 app.use(bodyParser.json());
 
@@ -418,7 +417,15 @@ app.delete('/remover_movimento', (req, res) => {
   movimentos = movimentos.filter(m => m.id_evento != id_evento);
   res.json(createSuccessResponse({ id_evento }, 'remover_movimento', req.body));
 });
+// Definir porta pelo env ou padrão
+const PORT = process.env.PORT || 4000;
+// Definir o host para escutar em todas as interfaces de rede (essencial para Docker)
+const HOST = '0.0.0.0';
 
-app.listen(PORT, () => {
-  console.log(`Servidor local rodando em http://localhost:${PORT}`);
+// Início do servidor
+app.listen(PORT, HOST, () => {
+  // Alterando o log para ser mais preciso sobre onde o servidor está realmente escutando
+  console.log(`Servidor escutando em http://${HOST}:${PORT}`);
+  // A linha abaixo pode ser mantida se você ainda quiser logar a URL pública
+  // console.log(`URL pública (quando disponível): ${config.apiUrl}`);
 });
