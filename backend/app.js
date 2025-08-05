@@ -23,6 +23,15 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Health check route
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
 const jwtMiddleware = require('./middleware/jwtMiddleware');
 app.use('/api/produtos', jwtMiddleware, produtosRoutes);
 app.use('/api/clientes', jwtMiddleware, clientesRoutes);
