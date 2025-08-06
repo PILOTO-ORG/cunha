@@ -8,6 +8,7 @@ export async function jwtFetch(url: string, options: RequestInit = {}) {
   }
   const headers = {
     ...(options.headers || {}),
+    'ngrok-skip-browser-warning': 'true',
     'Authorization': `Bearer ${token}`
   };
   const resp = await fetch(url, { ...options, headers });

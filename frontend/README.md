@@ -1,4 +1,3 @@
-
 # Sistema de Gestão - Cunha Festas
 
 Um sistema de gestão completo para a Cunha Festas, projetado para organizar e controlar dados, otimizando os processos comerciais da empresa.
@@ -14,12 +13,12 @@ Este projeto visa centralizar as operações da Cunha Festas, uma empresa de loc
 
 A interface web do sistema permite que os usuários realizem as seguintes ações de forma eficiente:
 
-  * **Gestão de Orçamentos:** Crie, edite e gerencie carrinhos de produtos para novos orçamentos.
-  * **Consulta de Disponibilidade:** Verifique em tempo real a quantidade de itens disponíveis para locação em datas específicas.
-  * **Geração de Contratos:** Monte e emita contratos de locação detalhados a partir de orçamentos aprovados.
-  * **Controle de Clientes (CRM):** Mantenha um cadastro completo e centralizado de todos os clientes.
-  * **Gerenciamento de Inventário:** Cadastre, atualize e controle todos os produtos do acervo, incluindo valores e quantidade.
-  * **Movimentação de Estoque:** Registre entradas, saídas, perdas e itens em manutenção para manter o controle do inventário sempre preciso.
+* **Gestão de Orçamentos:** Crie, edite e gerencie carrinhos de produtos para novos orçamentos.
+* **Consulta de Disponibilidade:** Verifique em tempo real a quantidade de itens disponíveis para locação em datas específicas.
+* **Geração de Contratos:** Monte e emita contratos de locação detalhados a partir de orçamentos aprovados.
+* **Controle de Clientes (CRM):** Mantenha um cadastro completo e centralizado de todos os clientes.
+* **Gerenciamento de Inventário:** Cadastre, atualize e controle todos os produtos do acervo, incluindo valores e quantidade.
+* **Movimentação de Estoque:** Registre entradas, saídas, perdas e itens em manutenção para manter o controle do inventário sempre preciso.
 
 ## 🏗️ Arquitetura e Stack de Tecnologia
 
@@ -32,15 +31,15 @@ O sistema opera com uma arquitetura desacoplada, onde o frontend se comunica com
 
 ### Stack Utilizada
 
-  * **Frontend:**
-      * **Framework:** React (última versão estável) com TypeScript
-      * **Estilização:** Tailwind CSS
-      * **Gerenciamento de Estado:** Context API
-  * **Backend / Orquestração:**
-      * **Plataforma:** n8n
-      * **Nós Essenciais:** Webhook, Node de PostgreSQL.
-  * **Banco de Dados:**
-      * **Sistema:** PostgreSQL
+* **Frontend:**
+  * **Framework:** React (última versão estável) com TypeScript
+  * **Estilização:** Tailwind CSS
+  * **Gerenciamento de Estado:** Context API
+* **Backend / Orquestração:**
+  * **Plataforma:** n8n
+  * **Nós Essenciais:** Webhook, Node de PostgreSQL.
+* **Banco de Dados:**
+  * **Sistema:** PostgreSQL
 
 ## 🚀 Como Começar (Guia de Instalação)
 
@@ -53,42 +52,55 @@ Siga os passos abaixo para configurar e rodar o projeto em seu ambiente de desen
 
 ### Configuração do Frontend
 
-1.  Clone o repositório do projeto:
+1. Clone o repositório do projeto:
 
     ```bash
     git clone https://github.com/seu-usuario/cunha-festas-frontend.git
     cd cunha-festas-frontend
     ```
 
-2.  Instale as dependências:
+2. Instale as dependências:
 
     ```bash
     npm install
     ```
 
-3.  Configure as variáveis de ambiente. Crie uma cópia do arquivo `.env.example` e renomeie para `.env`:
+3. Configure as variáveis de ambiente. Crie uma cópia do arquivo `.env.example` e renomeie para `.env`:
 
     ```bash
     cp .env.example .env
     ```
 
-4.  Abra o arquivo `.env` e adicione a URL base da sua API do n8n:
+4. Abra o arquivo `.env` e adicione a URL base da sua API do n8n:
 
-    ```
+    ```bash
     VITE_N8N_API_BASE_URL=https://n8n.piloto.live/webhook/cunha-festas
     ```
 
-5.  Inicie o servidor de desenvolvimento:
+5. Inicie o servidor de desenvolvimento:
 
     ```bash
     npm run dev
     ```
 
-    A aplicação estará disponível em `http://localhost:5173` (ou outra porta indicada no terminal).
+    A aplicação estará disponível em `http://<host>:<porta>` ou outra porta indicada no terminal.
 
 ## 🎛️ API Endpoints (n8n)
 
 O frontend consome um único webhook do n8n que processa diferentes ações baseadas no payload enviado. Todas as requisições são feitas via POST para `https://n8n.piloto.live/webhook/cunha-festas` com o payload JSON contendo a ação e os parâmetros necessários.
+
+### Solução 1: O Cabeçalho "Mágico" (Para Testes Gratuitos)
+
+Para contornar o aviso ao testar sua API via ngrok, adicione o cabeçalho especial `ngrok-skip-browser-warning` em suas requisições. Exemplo:
+
+* Em Postman ou Insomnia:
+  * Key: ngrok-skip-browser-warning
+  * Value: true
+
+* Usando curl no terminal (PowerShell ou Bash):
+```bash
+curl -H "ngrok-skip-browser-warning: true" https://seu-endereco.ngrok-free.app/api/sua-rota
+```
 
 ### Estrutura Padrão da Requisição
 
@@ -438,69 +450,69 @@ CREATE SCHEMA erp AUTHORIZATION cloudsqlsuperuser;
 -- DROP SEQUENCE erp.clientes_id_cliente_seq;
 
 CREATE SEQUENCE erp.clientes_id_cliente_seq
-	INCREMENT BY 1
-	MINVALUE 1
-	MAXVALUE 2147483647
-	START 1
-	CACHE 1
-	NO CYCLE;
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 2147483647
+  START 1
+  CACHE 1
+  NO CYCLE;
 -- DROP SEQUENCE erp.estoque_eventos_id_seq;
 
 CREATE SEQUENCE erp.estoque_eventos_id_seq
-	INCREMENT BY 1
-	MINVALUE 1
-	MAXVALUE 2147483647
-	START 1
-	CACHE 1
-	NO CYCLE;
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 2147483647
+  START 1
+  CACHE 1
+  NO CYCLE;
 -- DROP SEQUENCE erp.locais_id_local_seq;
 
 CREATE SEQUENCE erp.locais_id_local_seq
-	INCREMENT BY 1
-	MINVALUE 1
-	MAXVALUE 2147483647
-	START 1
-	CACHE 1
-	NO CYCLE;
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 2147483647
+  START 1
+  CACHE 1
+  NO CYCLE;
 -- DROP SEQUENCE erp.produtos_id_produto_seq;
 
 CREATE SEQUENCE erp.produtos_id_produto_seq
-	INCREMENT BY 1
-	MINVALUE 1
-	MAXVALUE 2147483647
-	START 1
-	CACHE 1
-	NO CYCLE;
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 2147483647
+  START 1
+  CACHE 1
+  NO CYCLE;
 -- DROP SEQUENCE erp.reservas_id_item_seq;
 
 CREATE SEQUENCE erp.reservas_id_item_seq
-	INCREMENT BY 1
-	MINVALUE 1
-	MAXVALUE 2147483647
-	START 1
-	CACHE 1
-	NO CYCLE;
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 2147483647
+  START 1
+  CACHE 1
+  NO CYCLE;
 -- DROP SEQUENCE erp.reservas_id_reserva_seq;
 
 CREATE SEQUENCE erp.reservas_id_reserva_seq
-	INCREMENT BY 1
-	MINVALUE 1
-	MAXVALUE 2147483647
-	START 1
-	CACHE 1
-	NO CYCLE;-- erp.clientes definição
+  INCREMENT BY 1
+  MINVALUE 1
+  MAXVALUE 2147483647
+  START 1
+  CACHE 1
+  NO CYCLE;-- erp.clientes definição
 
 -- Drop table
 
 -- DROP TABLE erp.clientes;
 
 CREATE TABLE erp.clientes (
-	id_cliente serial4 NOT NULL,
-	nome text NOT NULL,
-	telefone text NULL,
-	email text NULL,
-	cpf_cnpj text NULL,
-	CONSTRAINT clientes_pkey PRIMARY KEY (id_cliente)
+  id_cliente serial4 NOT NULL,
+  nome text NOT NULL,
+  telefone text NULL,
+  email text NULL,
+  cpf_cnpj text NULL,
+  CONSTRAINT clientes_pkey PRIMARY KEY (id_cliente)
 );
 
 
@@ -511,12 +523,12 @@ CREATE TABLE erp.clientes (
 -- DROP TABLE erp.locais;
 
 CREATE TABLE erp.locais (
-	id_local serial4 NOT NULL,
-	descricao text NOT NULL,
-	endereco text NULL,
-	capacidade int4 NULL,
-	tipo text NULL,
-	CONSTRAINT locais_pkey PRIMARY KEY (id_local)
+  id_local serial4 NOT NULL,
+  descricao text NOT NULL,
+  endereco text NULL,
+  capacidade int4 NULL,
+  tipo text NULL,
+  CONSTRAINT locais_pkey PRIMARY KEY (id_local)
 );
 
 
@@ -527,13 +539,13 @@ CREATE TABLE erp.locais (
 -- DROP TABLE erp.produtos;
 
 CREATE TABLE erp.produtos (
-	id_produto serial4 NOT NULL,
-	nome text NOT NULL,
-	quantidade_total int4 NOT NULL,
-	valor_locacao numeric NULL,
-	valor_danificacao numeric NULL,
-	tempo_limpeza int4 NULL,
-	CONSTRAINT produtos_pkey PRIMARY KEY (id_produto)
+  id_produto serial4 NOT NULL,
+  nome text NOT NULL,
+  quantidade_total int4 NOT NULL,
+  valor_locacao numeric NULL,
+  valor_danificacao numeric NULL,
+  tempo_limpeza int4 NULL,
+  CONSTRAINT produtos_pkey PRIMARY KEY (id_produto)
 );
 
 
@@ -544,20 +556,20 @@ CREATE TABLE erp.produtos (
 -- DROP TABLE erp.reservas;
 
 CREATE TABLE erp.reservas (
-	id_item_reserva int4 DEFAULT nextval('erp.reservas_id_item_seq'::regclass) NOT NULL,
-	id_reserva serial4 NOT NULL,
-	id_cliente int4 NULL,
-	id_local int4 NULL,
-	data_inicio timestamp NOT NULL,
-	data_fim timestamp NOT NULL,
-	status text NOT NULL,
-	id_produto int4 NOT NULL,
-	quantidade int4 NOT NULL,
-	CONSTRAINT ck_reservas_status CHECK ((status = ANY (ARRAY['ativa'::text, 'concluída'::text, 'cancelada'::text]))),
-	CONSTRAINT pk_reservas_item PRIMARY KEY (id_item_reserva),
-	CONSTRAINT fk_reservas_cliente FOREIGN KEY (id_cliente) REFERENCES erp.clientes(id_cliente),
-	CONSTRAINT fk_reservas_local FOREIGN KEY (id_local) REFERENCES erp.locais(id_local),
-	CONSTRAINT fk_reservas_produto FOREIGN KEY (id_produto) REFERENCES erp.produtos(id_produto)
+  id_item_reserva int4 DEFAULT nextval('erp.reservas_id_item_seq'::regclass) NOT NULL,
+  id_reserva serial4 NOT NULL,
+  id_cliente int4 NULL,
+  id_local int4 NULL,
+  data_inicio timestamp NOT NULL,
+  data_fim timestamp NOT NULL,
+  status text NOT NULL,
+  id_produto int4 NOT NULL,
+  quantidade int4 NOT NULL,
+  CONSTRAINT ck_reservas_status CHECK ((status = ANY (ARRAY['ativa'::text, 'concluída'::text, 'cancelada'::text]))),
+  CONSTRAINT pk_reservas_item PRIMARY KEY (id_item_reserva),
+  CONSTRAINT fk_reservas_cliente FOREIGN KEY (id_cliente) REFERENCES erp.clientes(id_cliente),
+  CONSTRAINT fk_reservas_local FOREIGN KEY (id_local) REFERENCES erp.locais(id_local),
+  CONSTRAINT fk_reservas_produto FOREIGN KEY (id_produto) REFERENCES erp.produtos(id_produto)
 );
 
 
@@ -568,17 +580,17 @@ CREATE TABLE erp.reservas (
 -- DROP TABLE erp.movimentos;
 
 CREATE TABLE erp.movimentos (
-	id_evento int4 DEFAULT nextval('erp.estoque_eventos_id_seq'::regclass) NOT NULL,
-	id_produto int4 NOT NULL,
-	data_evento timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	tipo_evento text NOT NULL,
-	quantidade int4 NOT NULL,
-	observacao text NULL,
-	responsavel text NULL,
-	reserva_id int4 NULL,
-	CONSTRAINT ck_tipo_evento CHECK ((tipo_evento = ANY (ARRAY['entrada'::text, 'saida'::text, 'reserva'::text, 'limpeza'::text, 'perda'::text]))),
-	CONSTRAINT pk_estoque_eventos PRIMARY KEY (id_evento),
-	CONSTRAINT fk_estoque_produto FOREIGN KEY (id_produto) REFERENCES erp.produtos(id_produto),
-	CONSTRAINT fk_estoque_reserva FOREIGN KEY (reserva_id) REFERENCES erp.reservas(id_item_reserva)
+  id_evento int4 DEFAULT nextval('erp.estoque_eventos_id_seq'::regclass) NOT NULL,
+  id_produto int4 NOT NULL,
+  data_evento timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  tipo_evento text NOT NULL,
+  quantidade int4 NOT NULL,
+  observacao text NULL,
+  responsavel text NULL,
+  reserva_id int4 NULL,
+  CONSTRAINT ck_tipo_evento CHECK ((tipo_evento = ANY (ARRAY['entrada'::text, 'saida'::text, 'reserva'::text, 'limpeza'::text, 'perda'::text]))),
+  CONSTRAINT pk_estoque_eventos PRIMARY KEY (id_evento),
+  CONSTRAINT fk_estoque_produto FOREIGN KEY (id_produto) REFERENCES erp.produtos(id_produto),
+  CONSTRAINT fk_estoque_reserva FOREIGN KEY (reserva_id) REFERENCES erp.reservas(id_item_reserva)
 );
 ```

@@ -15,6 +15,7 @@ async function apiRequest(path, options = {}) {
   const token = getToken();
   const headers = {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
     ...(token ? { Authorization: `Bearer ${token}` } : {})
   };
   const resp = await fetch(`${API_URL}${path}`, { ...options, headers });
@@ -75,7 +76,10 @@ class ApiClient {
       url += (url.includes('?') ? '&' : '?') + searchParams.toString();
     }
     const token = getToken();
-    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true'
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, { method: 'GET', headers });
     if (response.status === 401) {
@@ -92,7 +96,11 @@ class ApiClient {
   async post<T>(path: string, body?: any): Promise<ApiResponse<T>> {
     const url = this.buildUrl(path);
     const token = getToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true'
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'POST',
@@ -113,7 +121,11 @@ class ApiClient {
   async put<T>(path: string, body?: any): Promise<ApiResponse<T>> {
     const url = this.buildUrl(path);
     const token = getToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true'
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'PUT',
@@ -147,7 +159,10 @@ class ApiClient {
       url += (url.includes('?') ? '&' : '?') + searchParams.toString();
     }
     const token = getToken();
-    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true'
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, { method: 'DELETE', headers });
     if (response.status === 401) {
@@ -164,7 +179,11 @@ class ApiClient {
   async patch<T>(path: string, body?: any): Promise<ApiResponse<T>> {
     const url = this.buildUrl(path);
     const token = getToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true'
+    };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(url, {
       method: 'PATCH',
