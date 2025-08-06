@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+// Access API URL from environment
+declare const process: { env: { REACT_APP_API_URL?: string } };
+
 // Configuração base da API
 const api = axios.create({
-  baseURL: (window as any).ENV?.REACT_APP_API_URL || 'http://localhost:3001/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:4000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

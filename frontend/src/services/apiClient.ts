@@ -1,4 +1,3 @@
-
 // import removido: jwtFetch
 declare const process: {
   env: {
@@ -6,7 +5,7 @@ declare const process: {
   };
 };
 // Serviço de API para frontend com JWT
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
+const API_URL = process.env.REACT_APP_API_URL || `${window.location.origin}/api`;
 
 function getToken() {
   return localStorage.getItem('jwt');
@@ -28,7 +27,9 @@ async function apiRequest(path, options = {}) {
 
 export default apiRequest;
 // API Base Configuration
-const API_BASE_URL = (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/api$/, '') : 'http://localhost:4000');
+const API_BASE_URL = process.env.REACT_APP_API_URL
+  ? process.env.REACT_APP_API_URL.replace(/\/api$/, '')
+  : window.location.origin;
 
 export interface ApiResponse<T> {
   success: boolean;

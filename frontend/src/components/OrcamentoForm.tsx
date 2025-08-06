@@ -7,6 +7,9 @@ import { useProdutos } from '../hooks/useProdutos.ts';
 import { useClientes } from '../hooks/useClientes.ts';
 import { jwtFetch } from '../services/jwtFetch.ts';
 import { formatCurrency } from '../utils/formatters.ts';
+// Access API URL from environment
+declare const process: { env: { REACT_APP_API_URL?: string } };
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
 type OrcamentoFormProps = {
   orcamento?: Reserva | OrcamentoAgrupado;
@@ -265,7 +268,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
       
       if (isEdicao) {
         // Atualizar orçamento existente
-        response = await jwtFetch('http://localhost:4000/api/reservas/atualizar-orcamento', {
+        response = await jwtFetch(`${API_URL}/reservas/atualizar-orcamento`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -277,7 +280,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
         });
       } else {
         // Criar novo orçamento
-        response = await jwtFetch('http://localhost:4000/api/reservas/orcamento-multiplo', {
+        response = await jwtFetch(`${API_URL}/reservas/orcamento-multiplo`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -345,7 +348,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                 <Button type="button" variant="outline" onClick={() => { setShowNovoCliente(false); setNovoCliente({ nome: '', telefone: '', email: '', cpf_cnpj: '' }); }}>Cancelar</Button>
                 <Button type="button" onClick={async () => {
                   if (!novoCliente.nome.trim()) return;
-                  const resp = await jwtFetch('http://localhost:4000/api/clientes', {
+                  const resp = await jwtFetch(`${API_URL}/clientes`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(novoCliente)
@@ -354,7 +357,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                     const novo = await resp.json();
                     setShowNovoCliente(false);
                     setNovoCliente({ nome: '', telefone: '', email: '', cpf_cnpj: '' });
-                    const clientesResp = await jwtFetch('http://localhost:4000/api/clientes');
+                    const clientesResp = await jwtFetch(`${API_URL}/clientes`);
                     if (clientesResp.ok) {
                       const data = await clientesResp.json();
                       setClientes(data?.data || []);
@@ -404,7 +407,7 @@ const OrcamentoForm: React.FC<OrcamentoFormProps> = ({ orcamento, onSuccess, onC
                 <Button type="button" onClick={async () => {
                   if (!novoLocal.descricao.trim()) return;
                   const payload = { ...novoLocal, capacidade: novoLocal.capacidade ? Number(novoLocal.capacidade) : undefined };
-                  const resp = await jwtFetch('http://localhost:4000/api/locais', {
+                  const resp = await jwtFetch(`${API_URL}/locais`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
