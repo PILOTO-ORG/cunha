@@ -7,11 +7,6 @@
 
 import { apiClient } from '../services/apiClient';
 import type { 
-  Produto, 
-  Cliente, 
-  Local, 
-  Reserva, 
-  Movimento,
   CriarProdutoRequest,
   CriarClienteRequest,
   CriarLocalRequest,
@@ -37,20 +32,19 @@ export const testData = {
   } as CriarClienteRequest,
 
   local: {
-    descricao: "Salão de Festas - Teste",
+    nome: "Salão de Festas - Teste",
     endereco: "Rua Teste, 123",
     capacidade: 100,
-    tipo: "salao"
+    valor_locacao: 500
   } as CriarLocalRequest,
 
   reserva: {
     id_cliente: 1,
     id_local: 1,
-    data_inicio: "2025-08-15T18:00:00.000Z",
-    data_fim: "2025-08-15T23:00:00.000Z",
-    id_produto: 1,
-    quantidade: 10,
-    status: "ativa"
+    data_evento: "2025-08-15",
+    data_retirada: "2025-08-15",
+    data_devolucao: "2025-08-16",
+    valor_total: 1000
   } as CriarReservaRequest,
 
   movimento: {

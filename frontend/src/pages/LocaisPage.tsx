@@ -1,14 +1,14 @@
 
 import React, { useState } from 'react';
 import { PlusIcon, TrashIcon, PencilIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { useLocais, useRemoverLocal } from '../hooks/useLocais.ts';
-import Button from '../components/ui/Button.tsx';
-import Input from '../components/ui/Input.tsx';
-import Table from '../components/ui/Table.tsx';
-import type { TableColumn } from '../components/ui/Table.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import LoadingSpinner from '../components/ui/LoadingSpinner.tsx';
-import LocalForm from '../components/LocalForm.tsx';
+import { useLocais, useRemoverLocal } from '../hooks/useLocais';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Table from '../components/ui/Table';
+import type { TableColumn } from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import LocalForm from '../components/LocalForm';
 import type { Local } from '../types/api';
 import { toast } from 'react-hot-toast';
 
@@ -25,8 +25,8 @@ const LocaisPage: React.FC = () => {
   
   // Filter locais based on search
   const filteredLocais = locais.filter(local => 
-    local.descricao.toLowerCase().includes(search.toLowerCase()) ||
-    (local.tipo && local.tipo.toLowerCase().includes(search.toLowerCase()))
+    local.nome.toLowerCase().includes(search.toLowerCase()) ||
+    (local.endereco && local.endereco.toLowerCase().includes(search.toLowerCase()))
   );
 
   // Handle edit
@@ -60,20 +60,20 @@ const LocaisPage: React.FC = () => {
   // Table columns
   const columns: TableColumn<Local>[] = [
     {
-      header: 'Descrição',
-      accessor: 'descricao',
+      header: 'Nome',
+      accessor: 'nome',
       cell: (local: Local) => (
         <div className="font-medium text-gray-900">
-          {local.descricao}
+          {local.nome}
         </div>
       ),
     },
     {
-      header: 'Tipo',
-      accessor: (local: Local) => local.tipo || 'Não especificado',
+      header: 'Endereço',
+      accessor: (local: Local) => local.endereco || 'Não especificado',
       cell: (local: Local) => (
         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-          {local.tipo || 'Não especificado'}
+          {local.endereco || 'Não especificado'}
         </span>
       ),
     },
@@ -194,7 +194,7 @@ const LocaisPage: React.FC = () => {
       >
         <div className="space-y-4">
           <p className="text-gray-700">
-            Tem certeza que deseja remover o local <span className="font-semibold">{localToDelete?.descricao}</span>?
+            Tem certeza que deseja remover o local <span className="font-semibold">{localToDelete?.nome}</span>?
             Esta ação não pode ser desfeita.
           </p>
           <div className="flex justify-end space-x-3 mt-6">

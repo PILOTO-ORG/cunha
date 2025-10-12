@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient.ts';
+import { apiClient } from './apiClient';
 import type { DashboardData } from '../types/api';
 
 /**
@@ -21,9 +21,9 @@ export class DashboardService {
    * @returns Promise com dados do dashboard
    */
   static async obterDadosDashboard(): Promise<DashboardData> {
-    const response = await apiClient.get<DashboardData>('/dashboard');
+    const response = await apiClient.get<{ success: boolean; data: DashboardData }>('/dashboard');
     console.log('[DashboardService] obterDadosDashboard response:', response.data);
-    return response.data;
+    return response.data.data;
   }
 
   /**

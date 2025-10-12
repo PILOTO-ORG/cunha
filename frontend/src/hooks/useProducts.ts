@@ -1,0 +1,2 @@
+// useProducts hook - placeholder
+export {};

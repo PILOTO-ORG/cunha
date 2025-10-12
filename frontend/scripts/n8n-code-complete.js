@@ -1,5 +1,5 @@
 // ========================================
-// CÓDIGO N8N COMPLETO - CUNHA FESTAS ERP
+// CÓDIGO N8N COMPLETO - CUNHA FESTAS cunha
 // ========================================
 // Este código deve ser colocado em um node "Code" no n8n
 // Versão 2.0 - Corrige problemas de validação e formato de resposta
@@ -30,7 +30,7 @@ async function processRequest() {
       case 'atualizar_produto':
         return await atualizarProduto(requestData);
       case 'remover_produto':
-        return await removerProduto(requestData);
+        return await removcunharoduto(requestData);
       case 'verificar_disponibilidade':
         return await verificarDisponibilidadeProduto(requestData);
       case 'listar_produtos_estoque_baixo':
@@ -154,7 +154,7 @@ async function listarProdutos(data) {
       p.valor_locacao,
       p.valor_danificacao,
       p.tempo_limpeza
-    FROM erp.produtos p
+    FROM cunha.produtos p
     WHERE ${whereConditions.join(' AND ')}
     ORDER BY p.nome
     LIMIT ${limit} OFFSET ${offset}
@@ -176,7 +176,7 @@ async function criarProduto(data) {
   }
   
   const query = `
-    INSERT INTO erp.produtos (
+    INSERT INTO cunha.produtos (
       nome, 
       quantidade_total, 
       valor_locacao, 
@@ -215,7 +215,7 @@ async function buscarProduto(data) {
       p.valor_locacao,
       p.valor_danificacao,
       p.tempo_limpeza
-    FROM erp.produtos p
+    FROM cunha.produtos p
     WHERE p.id_produto = ${id_produto}
   `;
   
@@ -246,7 +246,7 @@ async function atualizarProduto(data) {
   }
   
   const query = `
-    UPDATE erp.produtos 
+    UPDATE cunha.produtos 
     SET ${updates.join(', ')}
     WHERE id_produto = ${id_produto}
     RETURNING 
@@ -261,14 +261,14 @@ async function atualizarProduto(data) {
   return createQueryResponse(query, {}, 'atualizar_produto', data);
 }
 
-async function removerProduto(data) {
+async function removcunharoduto(data) {
   const { id_produto } = data;
   
   if (!id_produto) {
     return createErrorResponse('ID do produto é obrigatório', 'VALIDATION_ERROR', 'remover_produto');
   }
   
-  const query = `DELETE FROM erp.produtos WHERE id_produto = ${id_produto} RETURNING id_produto, nome`;
+  const query = `DELETE FROM cunha.produtos WHERE id_produto = ${id_produto} RETURNING id_produto, nome`;
   
   return createQueryResponse(query, {}, 'remover_produto', data);
 }
@@ -287,8 +287,8 @@ async function verificarDisponibilidadeProduto(data) {
       p.quantidade_total,
       COALESCE(SUM(r.quantidade), 0) as quantidade_reservada,
       p.quantidade_total - COALESCE(SUM(r.quantidade), 0) as quantidade_disponivel
-    FROM erp.produtos p
-    LEFT JOIN erp.reservas r ON p.id_produto = r.id_produto 
+    FROM cunha.produtos p
+    LEFT JOIN cunha.reservas r ON p.id_produto = r.id_produto 
       AND r.status = 'ativa'
       AND (
         (r.data_inicio <= '${data_inicio}' AND r.data_fim > '${data_inicio}') OR
@@ -313,7 +313,7 @@ async function listarProdutosEstoqueBaixo(data) {
       p.valor_locacao,
       p.valor_danificacao,
       p.tempo_limpeza
-    FROM erp.produtos p
+    FROM cunha.produtos p
     WHERE p.quantidade_total <= ${limite_minimo}
     ORDER BY p.quantidade_total ASC, p.nome
   `;
@@ -341,7 +341,7 @@ async function listarClientes(data) {
       c.telefone,
       c.email,
       c.cpf_cnpj
-    FROM erp.clientes c
+    FROM cunha.clientes c
     WHERE ${whereConditions.join(' AND ')}
     ORDER BY c.nome
     LIMIT ${limit} OFFSET ${offset}
@@ -358,7 +358,7 @@ async function criarCliente(data) {
   }
   
   const query = `
-    INSERT INTO erp.clientes (
+    INSERT INTO cunha.clientes (
       nome, 
       telefone, 
       email, 
@@ -393,7 +393,7 @@ async function buscarCliente(data) {
       c.telefone,
       c.email,
       c.cpf_cnpj
-    FROM erp.clientes c
+    FROM cunha.clientes c
     WHERE c.id_cliente = ${id_cliente}
   `;
   
@@ -418,7 +418,7 @@ async function atualizarCliente(data) {
   }
   
   const query = `
-    UPDATE erp.clientes 
+    UPDATE cunha.clientes 
     SET ${updates.join(', ')}
     WHERE id_cliente = ${id_cliente}
     RETURNING 
@@ -439,7 +439,7 @@ async function removerCliente(data) {
     return createErrorResponse('ID do cliente é obrigatório', 'VALIDATION_ERROR', 'remover_cliente');
   }
   
-  const query = `DELETE FROM erp.clientes WHERE id_cliente = ${id_cliente} RETURNING id_cliente, nome`;
+  const query = `DELETE FROM cunha.clientes WHERE id_cliente = ${id_cliente} RETURNING id_cliente, nome`;
   
   return createQueryResponse(query, {}, 'remover_cliente', data);
 }
@@ -458,7 +458,7 @@ async function buscarClientesPorNome(data) {
       c.telefone,
       c.email,
       c.cpf_cnpj
-    FROM erp.clientes c
+    FROM cunha.clientes c
     WHERE c.nome ILIKE '%${nome}%'
     ORDER BY c.nome
     LIMIT 20
@@ -481,7 +481,7 @@ async function buscarClientePorEmail(data) {
       c.telefone,
       c.email,
       c.cpf_cnpj
-    FROM erp.clientes c
+    FROM cunha.clientes c
     WHERE c.email = '${email}'
   `;
   
@@ -501,7 +501,7 @@ async function verificarClienteExiste(data) {
   
   const query = `
     SELECT COUNT(*) as total
-    FROM erp.clientes c
+    FROM cunha.clientes c
     WHERE ${whereCondition.join(' OR ')}
   `;
   
@@ -521,8 +521,8 @@ async function obterEstatisticasCliente(data) {
       c.nome,
       COUNT(r.id_item_reserva) as total_reservas,
       MAX(r.data_inicio) as ultima_reserva
-    FROM erp.clientes c
-    LEFT JOIN erp.reservas r ON c.id_cliente = r.id_cliente
+    FROM cunha.clientes c
+    LEFT JOIN cunha.reservas r ON c.id_cliente = r.id_cliente
     WHERE c.id_cliente = ${id_cliente}
     GROUP BY c.id_cliente, c.nome
   `;
@@ -549,7 +549,7 @@ async function listarLocais(data) {
       l.endereco,
       l.capacidade,
       l.tipo
-    FROM erp.locais l
+    FROM cunha.locais l
     WHERE ${whereConditions.join(' AND ')}
     ORDER BY l.descricao
     LIMIT ${limit} OFFSET ${offset}
@@ -566,7 +566,7 @@ async function criarLocal(data) {
   }
   
   const query = `
-    INSERT INTO erp.locais (
+    INSERT INTO cunha.locais (
       descricao, 
       endereco, 
       capacidade, 
@@ -601,7 +601,7 @@ async function buscarLocal(data) {
       l.endereco,
       l.capacidade,
       l.tipo
-    FROM erp.locais l
+    FROM cunha.locais l
     WHERE l.id_local = ${id_local}
   `;
   
@@ -626,7 +626,7 @@ async function atualizarLocal(data) {
   }
   
   const query = `
-    UPDATE erp.locais 
+    UPDATE cunha.locais 
     SET ${updates.join(', ')}
     WHERE id_local = ${id_local}
     RETURNING 
@@ -647,7 +647,7 @@ async function removerLocal(data) {
     return createErrorResponse('ID do local é obrigatório', 'VALIDATION_ERROR', 'remover_local');
   }
   
-  const query = `DELETE FROM erp.locais WHERE id_local = ${id_local} RETURNING id_local, descricao`;
+  const query = `DELETE FROM cunha.locais WHERE id_local = ${id_local} RETURNING id_local, descricao`;
   
   return createQueryResponse(query, {}, 'remover_local', data);
 }
@@ -666,7 +666,7 @@ async function buscarLocaisPorTipo(data) {
       l.endereco,
       l.capacidade,
       l.tipo
-    FROM erp.locais l
+    FROM cunha.locais l
     WHERE l.tipo = '${tipo}'
     ORDER BY l.descricao
   `;
@@ -686,8 +686,8 @@ async function verificarDisponibilidadeLocal(data) {
       l.id_local,
       l.descricao,
       COUNT(r.id_item_reserva) as reservas_conflitantes
-    FROM erp.locais l
-    LEFT JOIN erp.reservas r ON l.id_local = r.id_local 
+    FROM cunha.locais l
+    LEFT JOIN cunha.reservas r ON l.id_local = r.id_local 
       AND r.status = 'ativa'
       AND (
         (r.data_inicio <= '${data_inicio}' AND r.data_fim > '${data_inicio}') OR
@@ -726,10 +726,10 @@ async function listarReservas(data) {
       c.nome as cliente_nome,
       l.descricao as local_descricao,
       p.nome as produto_nome
-    FROM erp.reservas r
-    LEFT JOIN erp.clientes c ON r.id_cliente = c.id_cliente
-    LEFT JOIN erp.locais l ON r.id_local = l.id_local
-    LEFT JOIN erp.produtos p ON r.id_produto = p.id_produto
+    FROM cunha.reservas r
+    LEFT JOIN cunha.clientes c ON r.id_cliente = c.id_cliente
+    LEFT JOIN cunha.locais l ON r.id_local = l.id_local
+    LEFT JOIN cunha.produtos p ON r.id_produto = p.id_produto
     WHERE ${whereConditions.join(' AND ')}
     ORDER BY r.data_inicio DESC
     LIMIT ${limit} OFFSET ${offset}
@@ -751,10 +751,10 @@ async function criarReserva(data) {
   }
   
   // Gerar próximo id_reserva
-  const nextIdQuery = `SELECT COALESCE(MAX(id_reserva), 0) + 1 as next_id FROM erp.reservas`;
+  const nextIdQuery = `SELECT COALESCE(MAX(id_reserva), 0) + 1 as next_id FROM cunha.reservas`;
   
   const query = `
-    INSERT INTO erp.reservas (
+    INSERT INTO cunha.reservas (
       id_reserva,
       id_cliente, 
       id_local, 
@@ -809,10 +809,10 @@ async function buscarReserva(data) {
       c.nome as cliente_nome,
       l.descricao as local_descricao,
       p.nome as produto_nome
-    FROM erp.reservas r
-    LEFT JOIN erp.clientes c ON r.id_cliente = c.id_cliente
-    LEFT JOIN erp.locais l ON r.id_local = l.id_local
-    LEFT JOIN erp.produtos p ON r.id_produto = p.id_produto
+    FROM cunha.reservas r
+    LEFT JOIN cunha.clientes c ON r.id_cliente = c.id_cliente
+    LEFT JOIN cunha.locais l ON r.id_local = l.id_local
+    LEFT JOIN cunha.produtos p ON r.id_produto = p.id_produto
     WHERE r.id_item_reserva = ${id_item_reserva}
   `;
   
@@ -844,7 +844,7 @@ async function atualizarReserva(data) {
   }
   
   const query = `
-    UPDATE erp.reservas 
+    UPDATE cunha.reservas 
     SET ${updates.join(', ')}
     WHERE id_item_reserva = ${id_item_reserva}
     RETURNING 
@@ -869,7 +869,7 @@ async function removerReserva(data) {
     return createErrorResponse('ID da reserva é obrigatório', 'VALIDATION_ERROR', 'remover_reserva');
   }
   
-  const query = `DELETE FROM erp.reservas WHERE id_item_reserva = ${id_item_reserva} RETURNING id_item_reserva, id_reserva`;
+  const query = `DELETE FROM cunha.reservas WHERE id_item_reserva = ${id_item_reserva} RETURNING id_item_reserva, id_reserva`;
   
   return createQueryResponse(query, {}, 'remover_reserva', data);
 }
@@ -895,10 +895,10 @@ async function buscarReservasPorCliente(data) {
       c.nome as cliente_nome,
       l.descricao as local_descricao,
       p.nome as produto_nome
-    FROM erp.reservas r
-    LEFT JOIN erp.clientes c ON r.id_cliente = c.id_cliente
-    LEFT JOIN erp.locais l ON r.id_local = l.id_local
-    LEFT JOIN erp.produtos p ON r.id_produto = p.id_produto
+    FROM cunha.reservas r
+    LEFT JOIN cunha.clientes c ON r.id_cliente = c.id_cliente
+    LEFT JOIN cunha.locais l ON r.id_local = l.id_local
+    LEFT JOIN cunha.produtos p ON r.id_produto = p.id_produto
     WHERE r.id_cliente = ${id_cliente}
     ORDER BY r.data_inicio DESC
   `;
@@ -927,10 +927,10 @@ async function buscarReservasPorProduto(data) {
       c.nome as cliente_nome,
       l.descricao as local_descricao,
       p.nome as produto_nome
-    FROM erp.reservas r
-    LEFT JOIN erp.clientes c ON r.id_cliente = c.id_cliente
-    LEFT JOIN erp.locais l ON r.id_local = l.id_local
-    LEFT JOIN erp.produtos p ON r.id_produto = p.id_produto
+    FROM cunha.reservas r
+    LEFT JOIN cunha.clientes c ON r.id_cliente = c.id_cliente
+    LEFT JOIN cunha.locais l ON r.id_local = l.id_local
+    LEFT JOIN cunha.produtos p ON r.id_produto = p.id_produto
     WHERE r.id_produto = ${id_produto}
     ORDER BY r.data_inicio DESC
   `;
@@ -959,10 +959,10 @@ async function buscarReservasPorPeriodo(data) {
       c.nome as cliente_nome,
       l.descricao as local_descricao,
       p.nome as produto_nome
-    FROM erp.reservas r
-    LEFT JOIN erp.clientes c ON r.id_cliente = c.id_cliente
-    LEFT JOIN erp.locais l ON r.id_local = l.id_local
-    LEFT JOIN erp.produtos p ON r.id_produto = p.id_produto
+    FROM cunha.reservas r
+    LEFT JOIN cunha.clientes c ON r.id_cliente = c.id_cliente
+    LEFT JOIN cunha.locais l ON r.id_local = l.id_local
+    LEFT JOIN cunha.produtos p ON r.id_produto = p.id_produto
     WHERE r.data_inicio >= '${data_inicio}' AND r.data_fim <= '${data_fim}'
     ORDER BY r.data_inicio DESC
   `;
@@ -983,7 +983,7 @@ async function atualizarStatusReserva(data) {
   }
   
   const query = `
-    UPDATE erp.reservas 
+    UPDATE cunha.reservas 
     SET status = '${status}'
     WHERE id_item_reserva = ${id_item_reserva}
     RETURNING 
@@ -1023,8 +1023,8 @@ async function listarMovimentos(data) {
       m.responsavel,
       m.reserva_id,
       p.nome as produto_nome
-    FROM erp.movimentos m
-    LEFT JOIN erp.produtos p ON m.id_produto = p.id_produto
+    FROM cunha.movimentos m
+    LEFT JOIN cunha.produtos p ON m.id_produto = p.id_produto
     WHERE ${whereConditions.join(' AND ')}
     ORDER BY m.data_evento DESC
     LIMIT ${limit} OFFSET ${offset}
@@ -1051,7 +1051,7 @@ async function criarMovimento(data) {
   }
   
   const query = `
-    INSERT INTO erp.movimentos (
+    INSERT INTO cunha.movimentos (
       id_produto, 
       tipo_evento, 
       quantidade, 
@@ -1097,8 +1097,8 @@ async function buscarMovimento(data) {
       m.responsavel,
       m.reserva_id,
       p.nome as produto_nome
-    FROM erp.movimentos m
-    LEFT JOIN erp.produtos p ON m.id_produto = p.id_produto
+    FROM cunha.movimentos m
+    LEFT JOIN cunha.produtos p ON m.id_produto = p.id_produto
     WHERE m.id_evento = ${id_evento}
   `;
   
@@ -1123,8 +1123,8 @@ async function buscarMovimentosPorProduto(data) {
       m.responsavel,
       m.reserva_id,
       p.nome as produto_nome
-    FROM erp.movimentos m
-    LEFT JOIN erp.produtos p ON m.id_produto = p.id_produto
+    FROM cunha.movimentos m
+    LEFT JOIN cunha.produtos p ON m.id_produto = p.id_produto
     WHERE m.id_produto = ${id_produto}
     ORDER BY m.data_evento DESC
   `;
@@ -1150,8 +1150,8 @@ async function buscarMovimentosPorTipo(data) {
       m.responsavel,
       m.reserva_id,
       p.nome as produto_nome
-    FROM erp.movimentos m
-    LEFT JOIN erp.produtos p ON m.id_produto = p.id_produto
+    FROM cunha.movimentos m
+    LEFT JOIN cunha.produtos p ON m.id_produto = p.id_produto
     WHERE m.tipo_evento = '${tipo_evento}'
     ORDER BY m.data_evento DESC
   `;
@@ -1177,8 +1177,8 @@ async function buscarMovimentosPorPeriodo(data) {
       m.responsavel,
       m.reserva_id,
       p.nome as produto_nome
-    FROM erp.movimentos m
-    LEFT JOIN erp.produtos p ON m.id_produto = p.id_produto
+    FROM cunha.movimentos m
+    LEFT JOIN cunha.produtos p ON m.id_produto = p.id_produto
     WHERE m.data_evento >= '${data_inicio}' AND m.data_evento <= '${data_fim}'
     ORDER BY m.data_evento DESC
   `;
@@ -1205,8 +1205,8 @@ async function obterHistoricoProduto(data) {
       m.reserva_id,
       p.nome as produto_nome,
       p.quantidade_total
-    FROM erp.movimentos m
-    LEFT JOIN erp.produtos p ON m.id_produto = p.id_produto
+    FROM cunha.movimentos m
+    LEFT JOIN cunha.produtos p ON m.id_produto = p.id_produto
     WHERE m.id_produto = ${id_produto}
     ORDER BY m.data_evento DESC
   `;

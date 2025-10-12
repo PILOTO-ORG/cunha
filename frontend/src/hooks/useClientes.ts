@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import ClienteService from '../services/clienteService.ts';
+import ClienteService from '../services/clienteService';
 import type { Cliente } from '../types/api';
 import type { ClienteFilter, CriarClienteRequest, AtualizarClienteRequest } from '../types/api';
 
@@ -115,9 +115,9 @@ export function useSoftDeleteCliente() {
   return useMutation({
     mutationFn: (id: number) => ClienteService.softDeleteCliente(id),
     onSuccess: (_, id) => {
-      // Atualizar o cache para marcar o cliente como removido
+      // Atualizar o cache para marcar o cliente como inativo
       queryClient.setQueryData(CLIENTE_QUERY_KEYS.detail(id), (old: Cliente | undefined) => 
-        old ? { ...old, removido: true, removido_em: new Date().toISOString() } : undefined
+        old ? { ...old, ativo: false } : undefined
       );
       
       // Invalidar listas de clientes para refletir a mudança

@@ -66,3 +66,27 @@
     @apply bg-white rounded-xl shadow-sm overflow-hidden;
   }
 }
+
+/* Custom scrollbar styles */
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-blue-300 rounded-full hover:bg-blue-400 transition-colors;
+  }
+  
+  .scrollbar-thumb-blue-300::-webkit-scrollbar-thumb {
+    @apply bg-blue-300;
+  }
+  
+  .scrollbar-track-gray-100::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+}

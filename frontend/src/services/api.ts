@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosHeaders } from 'axios';
 
 // Access API URL from environment
 declare const process: { env: { REACT_APP_API_URL?: string } };
@@ -18,8 +18,10 @@ api.interceptors.request.use(
     // Adiciona o token JWT em todos os requests
     const token = localStorage.getItem('jwt') || localStorage.getItem('jwtToken');
     if (token) {
-      config.headers = config.headers || {};
-      config.headers['Authorization'] = `Bearer ${token}`;
+      if (!config.headers) {
+        config.headers = new AxiosHeaders();
+      }
+      config.headers.set('Authorization', `Bearer ${token}`);
     }
     return config;
   },

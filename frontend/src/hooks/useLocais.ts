@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import LocalService from '../services/localService.ts';
+import LocalService from '../services/localService';
 import type { Local, LocalFilter, CriarLocalRequest, AtualizarLocalRequest, PaginatedResponse } from '../types/api';
 
 // Query Keys

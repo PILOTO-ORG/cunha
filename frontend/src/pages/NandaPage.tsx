@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import AIAssistant from '../components/AIAssistant.tsx';
+import AIAssistant from '../components/AIAssistant';
 import interactionExamplesData from '../data/n8n-interaction-examples.json';
 
 interface InteractionExample {

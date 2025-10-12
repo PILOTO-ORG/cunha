@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient.ts';
+import { apiClient } from './apiClient';
 import type { 
   Produto, 
   ProdutoFilter, 
@@ -75,11 +75,37 @@ export class ProdutoService {
    * Cria um novo produto
    * 
    * @param produto - Dados do produto a ser criado
+   * @param imagem - Arquivo de imagem (opcional)
    * @returns Promise com produto criado
    */
-  static async criarProduto(produto: CriarProdutoRequest): Promise<Produto> {
-    const response = await apiClient.post<Produto>('/produtos', produto);
-    return response.data;
+  static async criarProduto(produto: CriarProdutoRequest, imagem?: File): Promise<Produto> {
+    if (imagem) {
+      const formData = new FormData();
+      
+      // Adicionar dados do produto
+      Object.entries(produto).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+      
+      // Adicionar imagem
+      formData.append('imagem', imagem);
+      
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/api/produtos`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+        },
+        body: formData
+      });
+      
+      if (!response.ok) throw new Error('Erro ao criar produto');
+      return await response.json();
+    } else {
+      const response = await apiClient.post<Produto>('/produtos', produto);
+      return response.data;
+    }
   }
 
   /**
@@ -87,11 +113,37 @@ export class ProdutoService {
    * 
    * @param id - ID do produto
    * @param dados - Dados a serem atualizados
+   * @param imagem - Nova imagem (opcional)
    * @returns Promise com produto atualizado
    */
-  static async atualizarProduto(id: number, dados: AtualizarProdutoRequest): Promise<Produto> {
-    const response = await apiClient.put<Produto>(`/produtos/${id}`, dados);
-    return response.data;
+  static async atualizarProduto(id: number, dados: AtualizarProdutoRequest, imagem?: File): Promise<Produto> {
+    if (imagem) {
+      const formData = new FormData();
+      
+      // Adicionar dados do produto
+      Object.entries(dados).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+      
+      // Adicionar imagem
+      formData.append('imagem', imagem);
+      
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/api/produtos/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+        },
+        body: formData
+      });
+      
+      if (!response.ok) throw new Error('Erro ao atualizar produto');
+      return await response.json();
+    } else {
+      const response = await apiClient.put<Produto>(`/produtos/${id}`, dados);
+      return response.data;
+    }
   }
 
   /**
@@ -112,9 +164,14 @@ export class ProdutoService {
    * @returns Promise com o produto atualizado
    */
   static async softDeleteProduto(id: number): Promise<Produto> {
+    console.log(`[ProdutoService] softDeleteProduto - ID: ${id}`);
+    console.log(`[ProdutoService] Enviando payload: { ativo: false }`);
+    
     const response = await apiClient.patch<Produto>(`/produtos/${id}`, { 
-      removido: true 
+      ativo: false 
     });
+    
+    console.log(`[ProdutoService] softDeleteProduto response:`, response.data);
     return response.data;
   }
 
@@ -138,6 +195,58 @@ export class ProdutoService {
     consultas: DisponibilidadeConsulta[]
   ): Promise<DisponibilidadeResposta[]> {
     const response = await apiClient.post<DisponibilidadeResposta[]>('/produtos/disponibilidade-multipla', { consultas });
+    return response.data;
+  }
+
+  /**
+   * Adiciona imagens à galeria do produto
+   * 
+   * @param id - ID do produto
+   * @param imagens - Array de arquivos de imagem
+   * @returns Promise com produto atualizado
+   */
+  static async adicionarImagensGaleria(id: number, imagens: FileList): Promise<Produto> {
+    const formData = new FormData();
+    
+    // Adicionar todas as imagens
+    Array.from(imagens).forEach((imagem) => {
+      formData.append('imagens', imagem);
+    });
+    
+    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/api/produtos/${id}/galeria`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+      },
+      body: formData
+    });
+    
+    if (!response.ok) throw new Error('Erro ao adicionar imagens à galeria');
+    return await response.json();
+  }
+
+  /**
+   * Remove uma imagem específica da galeria
+   * 
+   * @param id - ID do produto
+   * @param imagemPath - Caminho da imagem a ser removida
+   * @returns Promise com produto atualizado
+   */
+  static async removerImagemGaleria(id: number, imagemPath: string): Promise<Produto> {
+    const response = await apiClient.delete<Produto>(`/produtos/${id}/galeria`, {
+      data: { imagemPath }
+    });
+    return response.data;
+  }
+
+  /**
+   * Remove a imagem principal do produto
+   * 
+   * @param id - ID do produto
+   * @returns Promise com produto atualizado
+   */
+  static async removerImagemPrincipal(id: number): Promise<Produto> {
+    const response = await apiClient.delete<Produto>(`/produtos/${id}/imagem-principal`);
     return response.data;
   }
 }

@@ -1,25 +1,31 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute.tsx';
-import LoginPage from './pages/LoginPage.tsx';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 // import RelatoriosPage from './pages/RelatoriosPage'; // Removido pois não existe
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import './styles/index.css';
 
 // Layout
-import Layout from './components/Layout.tsx';
+import Layout from './components/Layout';
 
 // Pages
-import HomePage from './pages/HomePage.tsx';
-import NandaPage from './pages/NandaPage.tsx';
-import ProductsPage from './pages/ProductsPage.tsx';
-import ClientsPage from './pages/ClientsPage.tsx';
-import BudgetsPage from './pages/OrcamentosPage.tsx';
-import ReservasPage from './pages/ReservasPage.tsx';
-import LocaisPage from './pages/LocaisPage.tsx';
-import MovimentosPage from './pages/MovimentosPage.tsx';
-import NotFoundPage from './pages/NotFoundPage.tsx';
+import HomePage from './pages/HomePage';
+import NandaPage from './pages/NandaPage';
+import ProductsPage from './pages/ProductsPage';
+import ClientsPage from './pages/ClientsPage';
+// import BudgetsPage from './pages/OrcamentosPageNew';
+import ReservasPage from './pages/ReservasPage';
+import LocaisPage from './pages/LocaisPage';
+import MovimentosPage from './pages/MovimentosPage';
+import NotFoundPage from './pages/NotFoundPage';
+import OrcamentosPageMarketplace from './pages/OrcamentosPageMarketplace';
+import OrcamentosListPage from './pages/OrcamentosListPage';
+import OrcamentoCreatePage from './pages/OrcamentoCreatePage';
+import OrcamentoCheckoutPage from './pages/OrcamentoCheckoutPage';
+import OrcamentoEditPage from './pages/OrcamentoEditPage';
 
 // Initialize React Query client
 const queryClient = new QueryClient({
@@ -54,10 +60,16 @@ function App() {
         <Layout>
           <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
                 <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
                 <Route path="/produtos" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
                 <Route path="/clientes" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
-                <Route path="/orcamentos" element={<ProtectedRoute><BudgetsPage /></ProtectedRoute>} />
+                <Route path="/orcamentos" element={<ProtectedRoute><OrcamentosListPage /></ProtectedRoute>} />
+                <Route path="/orcamentos/create" element={<ProtectedRoute><OrcamentoCreatePage /></ProtectedRoute>} />
+                <Route path="/orcamentos/:id/checkout" element={<ProtectedRoute><OrcamentoCheckoutPage /></ProtectedRoute>} />
+                <Route path="/orcamentos/:id/edit" element={<ProtectedRoute><OrcamentoEditPage /></ProtectedRoute>} />
+                <Route path='/orcamentos/marketplace' element={<ProtectedRoute><OrcamentosPageMarketplace /></ProtectedRoute>} />
+                {/* <Route path='/orcamentos/editar/:id' element={<ProtectedRoute><EditarOrcamentoPage /></ProtectedRoute>} /> */}
                 <Route path="/reservas" element={<ProtectedRoute><ReservasPage /></ProtectedRoute>} />
                 <Route path="/locais" element={<ProtectedRoute><LocaisPage /></ProtectedRoute>} />
                 <Route path="/movimentos" element={<ProtectedRoute><MovimentosPage /></ProtectedRoute>} />

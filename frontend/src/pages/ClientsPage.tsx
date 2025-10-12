@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { PlusIcon, TrashIcon, PencilIcon, EllipsisVerticalIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { useClientes, useRemoverCliente, useSoftDeleteCliente, useAtualizarCliente } from '../hooks/useClientes.ts';
-import type { AtualizarClienteRequest } from '../types/api';
-import ClienteService from '../services/clienteService.ts';
-import Button from '../components/ui/Button.tsx';
-import Input from '../components/ui/Input.tsx';
-import Table from '../components/ui/Table.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import LoadingSpinner from '../components/ui/LoadingSpinner.tsx';
-import ClientForm from '../components/ClientForm.tsx';
-import { Cliente } from '../types/api.ts';
-import { formatPhoneNumber, formatCPF, formatCNPJ } from '../utils/formatters.ts';
+import React, { useState } from 'react';
+import { PlusIcon, TrashIcon, PencilIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useClientes, useSoftDeleteCliente } from '../hooks/useClientes';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Table from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import ClientForm from '../components/ClientForm';
+import { Cliente } from '../types/api';
+import { formatPhoneNumber } from '../utils/formatters';
 import { toast } from 'react-hot-toast';
 
 const ClientsPage: React.FC = () => {
@@ -20,161 +18,57 @@ const ClientsPage: React.FC = () => {
   const [clientToDelete, setClientToDelete] = useState<Cliente | null>(null);
   const [editingClient, setEditingClient] = useState<Cliente | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<AtualizarClienteRequest>({
-    nome: '',
-    telefone: undefined,
-    email: undefined,
-    cpf_cnpj: undefined,
-    rg_inscricao_estadual: undefined,
-    endereco: undefined,
-    cep: undefined
-  });
   
-  const updateClientMutation = useAtualizarCliente();
-  const isSaving = updateClientMutation.isPending;
-  
-  // Initialize form data when editing client changes
-  useEffect(() => {
-    if (editingClient) {
-      setFormData({
-        nome: editingClient.nome || '',
-        telefone: editingClient.telefone || '',
-        email: editingClient.email || '',
-        cpf_cnpj: editingClient.cpf_cnpj || '',
-        rg_inscricao_estadual: editingClient.rg_inscricao_estadual || '',
-        endereco: editingClient.endereco || '',
-        cep: editingClient.cep || ''
-      });
-      setIsEditing(false);
-    }
-  }, [editingClient]);
-  
-  const handleEditClick = () => {
-    setIsEditing(true);
-  };
-  
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    if (editingClient) {
-      setFormData({
-        nome: editingClient.nome || '',
-        telefone: editingClient.telefone || '',
-        email: editingClient.email || '',
-        cpf_cnpj: editingClient.cpf_cnpj || '',
-        rg_inscricao_estadual: editingClient.rg_inscricao_estadual || '',
-        endereco: editingClient.endereco || '',
-        cep: editingClient.cep || ''
-      });
-    }
-  };
-  
-  const handleSave = async () => {
-    if (!editingClient) return;
-    
-    try {
-      console.log('Enviando dados para atualização:', formData); // Log para debug
-      
-      const response = await updateClientMutation.mutateAsync({
-        id: editingClient.id_cliente,
-        dados: {
-          nome: formData.nome || '',
-          telefone: formData.telefone,
-          email: formData.email,
-          cpf_cnpj: formData.cpf_cnpj,
-          rg_inscricao_estadual: formData.rg_inscricao_estadual,
-          endereco: formData.endereco,
-          cep: formData.cep
-        }
-      });
-      
-      console.log('Resposta da API:', response); // Log para debug
-      
-      if (response) {
-        toast.success('Cliente atualizado com sucesso!');
-        setIsEditing(false);
-        
-        // Atualiza o cliente na lista
-        const updatedClient = await ClienteService.buscarCliente(editingClient.id_cliente);
-        setEditingClient(updatedClient);
-        
-        // Força uma nova busca para atualizar a lista
-        if (refetch) {
-          await refetch();
-        }
-      } else {
-        throw new Error('Resposta inválida do servidor');
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar cliente:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast.error(`Erro ao atualizar cliente: ${errorMessage}`);
-    }
-  };
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    // Formatar CEP enquanto digita
-    if (name === 'cep') {
-      const numbersOnly = value.replace(/\D/g, '').slice(0, 8);
-      const formattedCep = numbersOnly.replace(/^(\d{5})(\d{0,3}).*/, '$1$2');
-      
-      setFormData(prev => ({
-        ...prev,
-        [name]: formattedCep || undefined
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value || undefined
-      }));
-    }
-  };
-  
-  // Fetch clients, excluding removed ones by default
+  // Fetch clients, excluding inactive ones by default
   const { data: clientsResponse, isLoading, refetch } = useClientes({ 
-    removido: false,
+    ativo: true,
     search: search
   });
   
-  const deleteClientMutation = useRemoverCliente();
   const softDeleteClientMutation = useSoftDeleteCliente();
 
   const clients = clientsResponse?.data || [];
-  
-  // Handle soft delete confirmation
-  const handleSoftDelete = async () => {
-    if (!clientToDelete) return;
-    
-    try {
-      await softDeleteClientMutation.mutateAsync(clientToDelete.id_cliente);
-      toast.success('Cliente desativado com sucesso');
-      setIsDeleteModalOpen(false);
-      setClientToDelete(null);
-    } catch (error) {
-      console.error('Erro ao desativar cliente:', error);
-      toast.error('Erro ao desativar cliente');
+
+  // Helper function to format CEP
+  const formatCep = (cep: string | undefined | null): string => {
+    if (!cep) return '-';
+    const cleaned = cep.replace(/\D/g, '');
+    if (cleaned.length === 8) {
+      return `${cleaned.slice(0, 5)}-${cleaned.slice(5)}`;
     }
-  };
-  
-  // Handle hard delete (keep for now, but consider removing if not needed)
-  const handleHardDelete = async () => {
-    if (!clientToDelete) return;
-    
-    try {
-      await deleteClientMutation.mutateAsync(clientToDelete.id_cliente);
-      toast.success('Cliente excluído com sucesso');
-      setIsDeleteModalOpen(false);
-      setClientToDelete(null);
-    } catch (error) {
-      console.error('Erro ao excluir cliente:', error);
-      toast.error('Erro ao excluir cliente');
-    }
+    return cep;
   };
 
-  const handleEdit = (client: Cliente) => {
+  const handleOpenModal = (client: Cliente | null = null) => {
     setEditingClient(client);
+    setIsEditing(false);
     setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingClient(null);
+    setIsEditing(false);
+  };
+
+  const handleCreateSuccess = () => {
+    refetch();
+    handleCloseModal();
+    toast.success('Cliente criado com sucesso!');
+  };
+
+  const handleEditSuccess = () => {
+    refetch();
+    setIsEditing(false);
+    toast.success('Cliente atualizado com sucesso!');
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
   };
 
   const handleDeleteClick = (client: Cliente) => {
@@ -182,102 +76,117 @@ const ClientsPage: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingClient(null);
-  };
-  
   const handleCloseDeleteModal = () => {
     setIsDeleteModalOpen(false);
     setClientToDelete(null);
   };
 
+  const handleSoftDelete = async () => {
+    if (!clientToDelete) return;
+
+    try {
+      await softDeleteClientMutation.mutateAsync(clientToDelete.id_cliente);
+      toast.success('Cliente desativado com sucesso');
+      handleCloseDeleteModal();
+      handleCloseModal();
+      refetch();
+    } catch (error) {
+      toast.error('Erro ao desativar cliente');
+      console.error('Error soft deleting client:', error);
+    }
+  };
+
   const columns = [
     {
       header: 'Nome',
-      accessor: (client: Cliente) => client.nome,
+      accessor: 'nome' as keyof Cliente,
       cell: (client: Cliente) => (
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Opening client details for:', client.id_cliente, client.nome);
-            setEditingClient({...client});
-            setIsModalOpen(true);
-          }}
-          className="font-medium text-blue-600 hover:text-blue-800 hover:underline text-left w-full"
-        >
-          {client.nome}
-        </button>
-      )
-    },
-    {
-      header: 'Telefone',
-      accessor: (client: Cliente) => client.telefone ? formatPhoneNumber(client.telefone) : '-',
-      cell: (client: Cliente) => (
-        <div className="text-gray-600">{client.telefone ? formatPhoneNumber(client.telefone) : '-'}</div>
+        <div className="flex items-center">
+          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-semibold text-sm">
+              {client.nome.charAt(0).toUpperCase()}
+            </span>
+          </div>
+          <div className="ml-4">
+            <div className="text-sm font-medium text-gray-900">{client.nome}</div>
+            <div className="text-sm text-gray-500">{client.email || 'Sem email'}</div>
+          </div>
+        </div>
       ),
     },
     {
-      header: '',
-      accessor: () => '',
+      header: 'Telefone',
+      accessor: 'telefone' as keyof Cliente,
       cell: (client: Cliente) => (
-        <div className="relative flex justify-end">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('3-dot menu clicked for client:', client.id_cliente);
-              setEditingClient({...client});
-              setIsModalOpen(true);
-            }}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            title="Ver detalhes"
+        <span className="text-sm text-gray-900">
+          {client.telefone ? formatPhoneNumber(client.telefone) : '-'}
+        </span>
+      ),
+    },
+    {
+      header: 'CPF/CNPJ',
+      accessor: 'cpf_cnpj' as keyof Cliente,
+      cell: (client: Cliente) => (
+        <span className="text-sm text-gray-900">{client.cpf_cnpj || '-'}</span>
+      ),
+    },
+    {
+      header: 'Endereço',
+      accessor: 'endereco' as keyof Cliente,
+      cell: (client: Cliente) => (
+        <span className="text-sm text-gray-900">
+          {client.cidade || client.endereco_completo || client.endereco || '-'}
+        </span>
+      ),
+    },
+    {
+      header: 'Ações',
+      accessor: 'id_cliente' as keyof Cliente,
+      cell: (client: Cliente) => (
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleOpenModal(client)}
           >
-            <EllipsisVerticalIcon className="h-5 w-5" />
-            <span className="sr-only">Ver detalhes</span>
-          </button>
+            Ver Detalhes
+          </Button>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="sm:flex sm:items-center sm:justify-between mb-8">
-          <div className="mb-4 sm:mb-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Clientes</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Gerencie os clientes do sistema
-            </p>
-          </div>
-          <Button 
-            onClick={() => {
-              setEditingClient(null);
-              setIsModalOpen(true);
-            }}
-            className="w-full sm:w-auto justify-center"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Novo Cliente
-          </Button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Gerencie seus clientes e informações de contato
+          </p>
         </div>
+        <Button
+          variant="primary"
+          onClick={() => handleOpenModal(null)}
+        >
+          <PlusIcon className="h-5 w-5 mr-2" />
+          Novo Cliente
+        </Button>
+      </div>
 
-        <div className="bg-white shadow rounded-lg p-4 mb-8">
-          <div className="max-w-md">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <Input
-                type="text"
-                placeholder="Buscar clientes..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 w-full"
-              />
+      <div className="bg-white shadow rounded-lg">
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
             </div>
+            <Input
+              type="text"
+              placeholder="Buscar clientes por nome, email ou telefone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </div>
 
@@ -304,207 +213,146 @@ const ClientsPage: React.FC = () => {
         size="xl"
       >
         {editingClient ? (
-          <div className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{editingClient.nome}</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Informações de Contato</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-start">
-                      <label className="text-gray-500 w-32 font-medium">Telefone:</label>
-                      {isEditing ? (
-                        <Input
-                          type="text"
-                          name="telefone"
-                          value={formData.telefone || ''}
-                          onChange={handleInputChange}
-                          className="flex-1 ml-2"
-                        />
-                      ) : (
-                        <span className="text-gray-900 flex-1 ml-2">{editingClient.telefone ? formatPhoneNumber(editingClient.telefone) : '-'}</span>
-                      )}
-                    </div>
-                    <div className="flex items-start">
-                      <label className="text-gray-500 w-32 font-medium">Email:</label>
-                      {isEditing ? (
-                        <Input
-                          type="email"
-                          name="email"
-                          value={formData.email || ''}
-                          onChange={handleInputChange}
-                          className="flex-1 ml-2"
-                        />
-                      ) : (
-                        <span className="text-gray-900 flex-1 break-all ml-2">{editingClient.email || '-'}</span>
-                      )}
-                    </div>
+          isEditing ? (
+            <ClientForm
+              key={`editar-${editingClient.id_cliente}`}
+              client={editingClient}
+              onSuccess={handleEditSuccess}
+              onCancel={handleCancelEdit}
+            />
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-gray-50 p-4 rounded-lg space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{editingClient.nome}</h2>
+                    <p className="text-sm text-gray-500">Cliente #{editingClient.id_cliente}</p>
                   </div>
+                  <span className={`inline-flex items-center px-3 py-1 text-sm font-medium rounded-full ${editingClient.ativo === false ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    {editingClient.ativo === false ? 'Inativo' : 'Ativo'}
+                  </span>
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Documentação</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-start">
-                      <label className="text-gray-500 w-32 font-medium">CPF/CNPJ:</label>
-                      {isEditing ? (
-                        <Input
-                          type="text"
-                          name="cpf_cnpj"
-                          value={formData.cpf_cnpj || ''}
-                          onChange={handleInputChange}
-                          className="flex-1 ml-2"
-                        />
-                      ) : (
-                        <span className="text-gray-900 flex-1 ml-2">{editingClient.cpf_cnpj || '-'}</span>
-                      )}
-                    </div>
-                    <div className="flex items-start">
-                      <label className="text-gray-500 w-32 font-medium">RG/Inscrição:</label>
-                      {isEditing ? (
-                        <Input
-                          type="text"
-                          name="rg_inscricao_estadual"
-                          value={formData.rg_inscricao_estadual || ''}
-                          onChange={handleInputChange}
-                          className="flex-1 ml-2"
-                        />
-                      ) : (
-                        <span className="text-gray-900 flex-1 ml-2">{editingClient.rg_inscricao_estadual || '-'}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Seção de Endereço - Sempre visível */}
-                <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-700 uppercase tracking-wide mb-3 flex items-center">
-                    <svg className="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Endereço Completo
-                  </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
-                    <div className="flex items-start">
-                      <label className="text-gray-600 w-32 font-medium flex-shrink-0">Endereço:</label>
-                      {isEditing ? (
-                        <Input
-                          type="text"
-                          name="endereco"
-                          value={formData.endereco || ''}
-                          onChange={handleInputChange}
-                          className="flex-1 ml-2 bg-white"
-                          placeholder="Rua, número, complemento"
-                        />
-                      ) : (
-                        <span className="text-gray-900 flex-1 ml-2">{editingClient.endereco || 'Não informado'}</span>
-                      )}
-                    </div>
-                    <div className="flex items-start">
-                      <label className="text-gray-600 w-32 font-medium flex-shrink-0">CEP:</label>
-                      {isEditing ? (
-                        <div className="flex-1 ml-2">
-                          <Input
-                            type="text"
-                            name="cep"
-                            value={formData.cep || ''}
-                            onChange={handleInputChange}
-                            className="w-40 bg-white"
-                            placeholder="00000-000"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">Apenas números</p>
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Informações de Contato</h3>
+                    <div className="bg-white rounded-lg border border-gray-200">
+                      <dl className="divide-y divide-gray-100">
+                        <div className="px-4 py-3 flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Telefone</dt>
+                          <dd className="text-sm text-gray-900">{editingClient.telefone ? formatPhoneNumber(editingClient.telefone) : '-'}</dd>
                         </div>
-                      ) : (
-                        <span className="text-gray-900 flex-1 ml-2">
-                          {editingClient.cep ? 
-                            editingClient.cep.replace(/^(\d{5})(\d{3})$/, '$1-$2') : 
-                            'Não informado'}
-                        </span>
-                      )}
+                        <div className="px-4 py-3 flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Email</dt>
+                          <dd className="text-sm text-gray-900 text-right break-all">{editingClient.email || '-'}</dd>
+                        </div>
+                      </dl>
                     </div>
                   </div>
-                </div>
 
-                <div className="md:col-span-2 pt-4 border-t border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Informações do Cadastro</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="flex items-start">
-                      <span className="text-gray-500 w-32 font-medium">Cadastrado em:</span>
-                      <span className="text-gray-900 flex-1">
-                        {editingClient.criado ? new Date(editingClient.criado).toLocaleDateString('pt-BR') : '-'}
-                      </span>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Documentos & Pagamento</h3>
+                    <div className="bg-white rounded-lg border border-gray-200">
+                      <dl className="divide-y divide-gray-100">
+                        <div className="px-4 py-3 flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">CPF/CNPJ</dt>
+                          <dd className="text-sm text-gray-900">{editingClient.cpf_cnpj || '-'}</dd>
+                        </div>
+                        <div className="px-4 py-3 flex justify-between">
+                          <dt className="text-sm font-medium text-gray-500">Forma de pagamento</dt>
+                          <dd className="text-sm text-gray-900">{editingClient.forma_pagamento || 'A definir'}</dd>
+                        </div>
+                      </dl>
                     </div>
-                    <div className="flex items-start">
-                      <span className="text-gray-500 w-32 font-medium">Última atualização:</span>
-                      <span className="text-gray-900 flex-1">
-                        {editingClient.atualizado ? new Date(editingClient.atualizado).toLocaleString('pt-BR') : '-'}
-                      </span>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-3">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Endereço</h3>
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">CEP</p>
+                          <p className="text-sm text-gray-900">{formatCep(editingClient.cep)}</p>
+                        </div>
+                        <div className="md:col-span-2">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Endereço completo</p>
+                          <p className="text-sm text-gray-900">{editingClient.endereco_completo || editingClient.endereco || 'Não informado'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Rua</p>
+                          <p className="text-sm text-gray-900">{editingClient.rua || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Número</p>
+                          <p className="text-sm text-gray-900">{editingClient.numero || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Bairro</p>
+                          <p className="text-sm text-gray-900">{editingClient.bairro || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Cidade</p>
+                          <p className="text-sm text-gray-900">{editingClient.cidade || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Estado</p>
+                          <p className="text-sm text-gray-900">{editingClient.estado ? editingClient.estado.toUpperCase() : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Complemento</p>
+                          <p className="text-sm text-gray-900">{editingClient.complemento || '-'}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-start">
-                      <span className="text-gray-500 w-32 font-medium">Status:</span>
-                      <span className="flex items-center">
-                        <span className={`h-2.5 w-2.5 rounded-full mr-2 ${editingClient.removido ? 'bg-red-500' : 'bg-green-500'}`}></span>
-                        {editingClient.removido ? 'Inativo' : 'Ativo'}
-                      </span>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-3">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Observações</h3>
+                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3">
+                      <p className="text-sm text-gray-900 whitespace-pre-line">{editingClient.observacoes || 'Nenhuma observação registrada.'}</p>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-500 font-medium">Cadastrado em</p>
+                        <p className="text-gray-900">{editingClient.criado_em ? new Date(editingClient.criado_em).toLocaleDateString('pt-BR') : '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 font-medium">Status</p>
+                        <p className="text-gray-900">{editingClient.ativo === false ? 'Inativo' : 'Ativo'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 font-medium">ID interno</p>
+                        <p className="text-gray-900">{editingClient.id_cliente}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-between pt-4 border-t border-gray-200">
-              <div className="flex space-x-2">
-                {isEditing ? (
-                  <>
-                    <Button
-                      variant="primary"
-                      onClick={handleSave}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? 'Salvando...' : 'Salvar'}
+              <div className="flex justify-between pt-4 border-t border-gray-200">
+                <div className="flex space-x-2">
+                  <Button variant="primary" onClick={handleEditClick}>
+                    <PencilIcon className="h-4 w-4 mr-1" /> Editar
+                  </Button>
+                  {editingClient.ativo !== false && (
+                    <Button variant="danger" onClick={() => handleDeleteClick(editingClient)}>
+                      <TrashIcon className="h-4 w-4 mr-1" /> Desativar
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCancelEdit}
-                      disabled={isSaving}
-                    >
-                      Cancelar
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="primary"
-                      onClick={handleEditClick}
-                    >
-                      <PencilIcon className="h-4 w-4 mr-1" /> Editar
-                    </Button>
-                    {!editingClient.removido && (
-                      <Button
-                        variant="danger"
-                        onClick={() => handleDeleteClick(editingClient)}
-                      >
-                        <TrashIcon className="h-4 w-4 mr-1" /> Desativar
-                      </Button>
-                    )}
-                  </>
-                )}
+                  )}
+                </div>
+                <Button variant="outline" onClick={handleCloseModal}>
+                  Fechar
+                </Button>
               </div>
-              <Button 
-                variant="outline" 
-                onClick={handleCloseModal}
-                disabled={isSaving}
-              >
-                Fechar
-              </Button>
             </div>
-          </div>
+          )
         ) : (
           <ClientForm
-            client={editingClient}
-            onSuccess={handleCloseModal}
+            client={null}
+            onSuccess={handleCreateSuccess}
             onCancel={handleCloseModal}
           />
         )}

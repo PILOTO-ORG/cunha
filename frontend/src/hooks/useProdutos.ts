@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ProdutoService } from '../services/produtoService.ts';
+import { ProdutoService } from '../services/produtoService';
 import type { 
   ProdutoFilter, 
   DisponibilidadeConsulta,

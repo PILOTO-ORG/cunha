@@ -1,304 +1,173 @@
-import { apiClient } from './apiClient.ts';
+import { apiClient } from './apiClient';
 import type {
-  Orcamento,
   Reserva,
-  OrcamentoFilter,
   ReservaFilter,
-  CriarOrcamentoRequest,
+  OrcamentoFilter,
+  PaginatedResponse,
+  AtualizarReservaRequest,
   AtualizarOrcamentoRequest,
   CriarReservaRequest,
-  AtualizarReservaRequest,
-  PaginatedResponse
+  ReservaStatus,
+  CriarOrcamentoComItensRequest
 } from '../types/api';
+import { reservaSchema } from '../constants/reservaSchema';
 
-/**
- * Serviço para gerenciamento de orçamentos e reservas
- * 
- * Todas as requisições são feitas para o webhook do n8n com diferentes ações:
- * 
- * ORÇAMENTOS:
- * - listar_orcamentos - Lista todos os orçamentos
- * - buscar_orcamento - Busca orçamento por ID
- * - criar_orcamento - Cria novo orçamento
- * - atualizar_orcamento - Atualiza orçamento
- * - remover_orcamento - Remove orçamento
- * - aprovar_orcamento - Aprova orçamento (converte em reserva)
- * - calcular_total_orcamento - Calcula total do orçamento
- * 
- * RESERVAS:
- * - listar_reservas - Lista todas as reservas
- * - buscar_reserva - Busca reserva por ID
- * - criar_reserva - Cria nova reserva
- * - atualizar_reserva - Atualiza reserva
- * - cancelar_reserva - Cancela reserva
- * - finalizar_reserva - Finaliza reserva
- * - listar_reservas_ativas - Lista reservas ativas
- * - listar_reservas_periodo - Lista reservas por período
- * - obter_relatorio_reservas - Obtém relatório de reservas
- */
+function buildQueryString(filtros?: ReservaFilter | OrcamentoFilter): string {
+  if (!filtros) {
+    return '';
+  }
+
+  const params = new URLSearchParams();
+  Object.entries(filtros).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params.append(key, String(value));
+    }
+  });
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : '';
+}
+
+function normalizeStatus(status?: string | null): ReservaStatus | undefined {
+  if (!status) {
+    return undefined;
+  }
+
+  const normalized = status.toLowerCase();
+  return (reservaSchema.status as readonly string[]).includes(normalized)
+    ? (normalized as ReservaStatus)
+    : undefined;
+}
+
+function normalizeItems(items: CriarOrcamentoComItensRequest['items']) {
+  return items.map((item) => ({
+    id_produto: item.id_produto,
+    quantidade: item.quantidade,
+    dias_locacao:
+      item.dias_locacao ?? item.dias ?? item.diasLocacao ?? 1,
+    valor_unitario: item.valor_unitario
+  }));
+}
 
 export class OrcamentoService {
-  // === MÉTODOS PARA ORÇAMENTOS ===
+  // === MÉTODOS DE ORÇAMENTO ===
+  
+  static async listarOrcamentos(filtros?: OrcamentoFilter): Promise<PaginatedResponse<Reserva>> {
+    const query = buildQueryString(filtros);
+    const response = await apiClient.get<Reserva[]>(`/orcamentos${query}`);
+    const data = Array.isArray(response.data) ? response.data : [];
 
-  /**
-   * Lista todos os orçamentos com filtros opcionais
-   * 
-   * @param filtros - Filtros de busca e paginação
-   * @returns Promise com lista paginada de orçamentos
-   */
-  static async listarOrcamentos(filtros?: OrcamentoFilter): Promise<PaginatedResponse<Orcamento>> {
-    const response = await apiClient.get<PaginatedResponse<Orcamento>>('listar_orcamentos', filtros);
+    return {
+      data,
+      total: data.length,
+      page: 1,
+      limit: data.length || 10,
+      totalPages: 1
+    };
+  }
+
+  static async buscarOrcamento(id: number): Promise<Reserva> {
+    const response = await apiClient.get<Reserva>(`/orcamentos/${id}`);
     return response.data;
   }
 
-  /**
-   * Busca um orçamento específico por ID
-   * 
-   * @param id - ID do orçamento
-   * @returns Promise com dados do orçamento
-   */
-  static async buscarOrcamento(id: number): Promise<Orcamento> {
-    const response = await apiClient.get<Orcamento>('buscar_orcamento', { id });
+  static async listarItensOrcamento(id: number): Promise<any[]> {
+    const response = await apiClient.get<any[]>(`/orcamentos/${id}/itens`);
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  static async calcularTotal(id: number): Promise<{ valor_total: number }> {
+    const response = await apiClient.get<{ valor_total: number }>(`/orcamentos/${id}/calcular`);
     return response.data;
   }
 
-  /**
-   * Cria um novo orçamento
-   * 
-   * @param orcamento - Dados do orçamento a ser criado
-   * @returns Promise com o orçamento criado
-   */
-  static async criarOrcamento(orcamento: CriarOrcamentoRequest): Promise<Orcamento> {
-    const response = await apiClient.post<Orcamento>('criar_orcamento', orcamento);
+  static async criarOrcamento(orcamento: CriarOrcamentoComItensRequest): Promise<Reserva> {
+    const status = normalizeStatus(orcamento.status) ?? reservaSchema.defaults.orcamentoStatus;
+    const payload = {
+      ...orcamento,
+      status,
+      items: normalizeItems(orcamento.items)
+    };
+
+    const response = await apiClient.post<Reserva>('/orcamentos', payload);
     return response.data;
   }
 
-  /**
-   * Cria um novo orçamento como reservas com múltiplos itens (status "iniciada")
-   * 
-   * @param orcamento - Dados do orçamento com múltiplos itens
-   * @returns Promise com as reservas criadas
-   */
-  static async criarOrcamentoComoReservas(orcamento: CriarOrcamentoRequest): Promise<Reserva[]> {
-    const reservasCriadas: Reserva[] = [];
-    
-    for (const item of orcamento.itens) {
-      const reservaData = {
-        id_cliente: orcamento.id_cliente,
-        id_local: orcamento.id_local,
-        data_inicio: item.data_inicio,
-        data_fim: item.data_fim,
-        id_produto: item.id_produto,
-        quantidade: item.quantidade,
-        status: 'iniciada', // Status "iniciada" indica que é um orçamento
-        observacoes: orcamento.observacoes,
-        data_validade: orcamento.data_validade
-      };
-      
-      const response = await apiClient.post<Reserva[] | Reserva>('criar_reserva', reservaData);
-      
-      // Lidar com resposta que pode ser array ou objeto
-      let reservaCriada: Reserva;
-      if (Array.isArray(response.data)) {
-        if (response.data.length === 0) {
-          throw new Error('Nenhuma reserva foi criada para o item');
-        }
-        reservaCriada = response.data[0];
-      } else {
-        reservaCriada = response.data as Reserva;
-      }
-      
-      reservasCriadas.push(reservaCriada);
-    }
-    
-    return reservasCriadas;
-  }
-
-  /**
-   * Atualiza um orçamento existente
-   * 
-   * @param id - ID do orçamento
-   * @param dadosAtualizacao - Dados para atualização
-   * @returns Promise com o orçamento atualizado
-   */
-  static async atualizarOrcamento(id: number, dadosAtualizacao: AtualizarOrcamentoRequest): Promise<Orcamento> {
-    const response = await apiClient.put<Orcamento>('atualizar_orcamento', {
-      id,
-      ...dadosAtualizacao
-    });
+  static async atualizarOrcamento(id: number, dados: AtualizarOrcamentoRequest): Promise<Reserva> {
+    const response = await apiClient.put<Reserva>(`/orcamentos/${id}`, dados);
     return response.data;
   }
 
-  /**
-   * Remove um orçamento
-   * 
-   * @param id - ID do orçamento a ser removido
-   * @returns Promise com confirmação da remoção
-   */
-  static async removerOrcamento(id: number): Promise<{ success: boolean }> {
-    const response = await apiClient.delete<{ success: boolean }>('remover_orcamento', { id });
-    return response.data;
+  static async removerOrcamento(id: number): Promise<void> {
+    await apiClient.delete(`/orcamentos/${id}`);
   }
 
-  /**
-   * Aprova um orçamento e converte em reserva
-   * 
-   * @param id - ID do orçamento
-   * @returns Promise com a reserva criada
-   */
   static async aprovarOrcamento(id: number): Promise<Reserva> {
-    const response = await apiClient.post<Reserva>('aprovar_orcamento', { id });
-    return response.data;
+    const response = await apiClient.post<{ success: boolean; message: string; reserva: Reserva }>(`/orcamentos/${id}/aprovar`);
+    // A API retorna { success: true, message: '...', reserva: ... }
+    // O apiClient encapsula isso em { success: true, data: ... }
+    return response.data.reserva;
   }
 
-  /**
-   * Calcula o total de um orçamento
-   * 
-   * @param id - ID do orçamento
-   * @returns Promise com o valor total calculado
-   */
-  static async calcularTotal(id: number): Promise<{ total: number; detalhes: any[] }> {
-    const response = await apiClient.get<{ total: number; detalhes: any[] }>('calcular_total_orcamento', { id });
-    return response.data;
-  }
+  // === MÉTODOS DE RESERVA ===
 
-  // === MÉTODOS PARA RESERVAS ===
-
-  /**
-   * Lista todas as reservas com filtros opcionais
-   * 
-   * @param filtros - Filtros de busca e paginação
-   * @returns Promise com lista paginada de reservas
-   */
   static async listarReservas(filtros?: ReservaFilter): Promise<PaginatedResponse<Reserva>> {
-    const response = await apiClient.get<PaginatedResponse<Reserva>>('listar_reservas', filtros);
-    return response.data;
+    const query = buildQueryString(filtros);
+    const response = await apiClient.get<Reserva[]>(`/reservas${query}`);
+    const data = Array.isArray(response.data) ? response.data : [];
+
+    return {
+      data,
+      total: data.length,
+      page: 1,
+      limit: data.length || 10,
+      totalPages: 1
+    };
   }
 
-  /**
-   * Busca uma reserva específica por ID
-   * 
-   * @param id - ID da reserva
-   * @returns Promise com dados da reserva
-   */
   static async buscarReserva(id: number): Promise<Reserva> {
-    const response = await apiClient.get<Reserva>('buscar_reserva', { id });
+    const response = await apiClient.get<Reserva>(`/reservas/${id}`);
     return response.data;
   }
 
-  /**
-   * Cria uma nova reserva
-   * 
-   * @param reserva - Dados da reserva a ser criada
-   * @returns Promise com a reserva criada
-   */
-  static async criarReserva(reserva: CriarReservaRequest): Promise<Reserva> {
-    const response = await apiClient.post<Reserva>('criar_reserva', reserva);
-    return response.data;
-  }
-
-  /**
-   * Atualiza uma reserva existente
-   * 
-   * @param id - ID da reserva
-   * @param dadosAtualizacao - Dados para atualização
-   * @returns Promise com a reserva atualizada
-   */
-  static async atualizarReserva(id: number, dadosAtualizacao: AtualizarReservaRequest): Promise<Reserva> {
-    const response = await apiClient.put<Reserva>('atualizar_reserva', {
-      id,
-      ...dadosAtualizacao
-    });
-    return response.data;
-  }
-
-  /**
-   * Cancela uma reserva
-   * 
-   * @param id - ID da reserva
-   * @param motivo - Motivo do cancelamento
-   * @returns Promise com confirmação do cancelamento
-   */
-  static async cancelarReserva(id: number, motivo?: string): Promise<{ success: boolean }> {
-    const response = await apiClient.post<{ success: boolean }>('cancelar_reserva', { id, motivo });
-    return response.data;
-  }
-
-  /**
-   * Finaliza uma reserva
-   * 
-   * @param id - ID da reserva
-   * @param observacoes - Observações finais
-   * @returns Promise com confirmação da finalização
-   */
-  static async finalizarReserva(id: number, observacoes?: string): Promise<{ success: boolean }> {
-    const response = await apiClient.post<{ success: boolean }>('finalizar_reserva', { id, observacoes });
-    return response.data;
-  }
-
-  /**
-   * Lista reservas ativas
-   * 
-   * @returns Promise com lista de reservas ativas
-   */
   static async listarReservasAtivas(): Promise<Reserva[]> {
-    const response = await apiClient.get<Reserva[]>('listar_reservas_ativas');
-    return response.data;
+    const response = await apiClient.get<Reserva[]>('/reservas?status=ativa');
+    return Array.isArray(response.data) ? response.data : [];
   }
 
-  /**
-   * Lista reservas por período
-   * 
-   * @param dataInicio - Data de início do período
-   * @param dataFim - Data de fim do período
-   * @returns Promise com lista de reservas no período
-   */
   static async listarReservasPorPeriodo(dataInicio: string, dataFim: string): Promise<Reserva[]> {
-    const response = await apiClient.get<Reserva[]>('listar_reservas_periodo', {
-      dataInicio,
-      dataFim
-    });
+    const response = await apiClient.get<Reserva[]>(`/reservas?data_inicio=${dataInicio}&data_fim=${dataFim}`);
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  static async obterRelatorioReservas(periodo: { dataInicio: string; dataFim: string }): Promise<any> {
+    const response = await apiClient.get(`/reservas/relatorio?data_inicio=${periodo.dataInicio}&data_fim=${periodo.dataFim}`);
     return response.data;
   }
 
-  /**
-   * Obtém relatório de reservas
-   * 
-   * @param periodo - Período do relatório
-   * @returns Promise com dados do relatório
-   */
-  static async obterRelatorioReservas(periodo: {
-    dataInicio: string;
-    dataFim: string;
-  }): Promise<{
-    totalReservas: number;
-    totalCanceladas: number;
-    totalFinalizadas: number;
-    valorTotal: number;
-    produtosMaisReservados: any[];
-  }> {
-    const response = await apiClient.get<{
-      totalReservas: number;
-      totalCanceladas: number;
-      totalFinalizadas: number;
-      valorTotal: number;
-      produtosMaisReservados: any[];
-    }>('obter_relatorio_reservas', periodo);
+  static async criarReserva(reserva: CriarReservaRequest): Promise<Reserva> {
+    const response = await apiClient.post<Reserva>('/reservas', reserva);
     return response.data;
   }
 
-  /**
-   * Converte um orçamento em reserva ativa
-   * 
-   * @param idReserva - ID da reserva a ser convertida
-   * @returns Promise com a reserva atualizada
-   */
-  static async converterParaReserva(idReserva: number): Promise<Reserva> {
-    const response = await apiClient.put<Reserva>('atualizar_reserva', {
-      id_item_reserva: idReserva,
-      status: 'ativa'
-    });
-    
+  static async atualizarReserva(id: number, dados: AtualizarReservaRequest): Promise<Reserva> {
+    const status = normalizeStatus(dados.status);
+    const payload = {
+      ...dados,
+      ...(status && { status })
+    };
+
+    const response = await apiClient.put<Reserva>(`/reservas/${id}`, payload);
+    return response.data;
+  }
+
+  static async cancelarReserva(id: number, motivo?: string): Promise<Reserva> {
+    const response = await apiClient.post<Reserva>(`/reservas/${id}/cancelar`, { motivo });
+    return response.data;
+  }
+
+  static async finalizarReserva(id: number, observacoes?: string): Promise<Reserva> {
+    const response = await apiClient.post<Reserva>(`/reservas/${id}/finalizar`, { observacoes });
     return response.data;
   }
 }

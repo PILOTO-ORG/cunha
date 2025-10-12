@@ -1,0 +1,11 @@
+export { default as HomePage } from './HomePage';
+export { default as LoginPage } from './LoginPage';
+export { default as RegisterPage } from './RegisterPage';
+export { default as ProductsPage } from './ProductsPage';
+export { default as ClientsPage } from './ClientsPage';
+export { default as OrcamentosPage } from './OrcamentosPageNew';
+export { default as ReservasPage } from './ReservasPage';
+export { default as LocaisPage } from './LocaisPage';
+export { default as MovimentosPage } from './MovimentosPage';
+export { default as NandaPage } from './NandaPage';
+export { default as NotFoundPage } from './NotFoundPage';

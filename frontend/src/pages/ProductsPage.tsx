@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { PlusIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { useProdutos, useSoftDeleteProduto } from '../hooks/useProdutos.ts';
-import Button from '../components/ui/Button.tsx';
-import Input from '../components/ui/Input.tsx';
-import Table from '../components/ui/Table.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import LoadingSpinner from '../components/ui/LoadingSpinner.tsx';
-import ProductForm from '../components/ProductForm.tsx';
+import { PlusIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { useProdutos, useSoftDeleteProduto } from '../hooks/useProdutos';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Table from '../components/ui/Table';
+import Modal from '../components/ui/Modal';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import ProductForm from '../components/ProductForm';
+import ImageViewer from '../components/ImageViewer';
 import { Produto } from '../types/api';
-import { formatCurrency } from '../utils/formatters.ts';
+import { formatCurrency } from '../utils/formatters';
 import { toast } from 'react-hot-toast';
 
 const ProductsPage: React.FC = () => {
@@ -22,7 +23,7 @@ const ProductsPage: React.FC = () => {
   const softDeleteMutation = useSoftDeleteProduto();
 
   // Filter out removed products
-  const products = (productsResponse?.data || []).filter(product => !product.removido);
+  const products = (productsResponse?.data || []).filter(product => product.ativo !== false);
 
   const handleEdit = (product: Produto) => {
     setEditingProduct(product);
@@ -64,10 +65,39 @@ const ProductsPage: React.FC = () => {
 
   const columns = [
     {
+      header: 'Imagem',
+      accessor: () => '',
+      cell: (product: Produto) => (
+        <div 
+          className="flex items-center justify-center"
+          onClick={(e) => e.stopPropagation()} // Previne abrir menu ao clicar na imagem
+        >
+          {product.imagem_principal ? (
+            <ImageViewer
+              src={product.imagem_principal}
+              alt={product.nome}
+              thumbnailClassName="h-16 w-16"
+            />
+          ) : (
+            <div className="h-16 w-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg border-2 border-gray-200 flex flex-col items-center justify-center">
+              <PhotoIcon className="h-8 w-8 text-gray-400" />
+              <span className="text-[10px] text-gray-500 mt-0.5">Sem foto</span>
+            </div>
+          )}
+        </div>
+      ),
+      className: 'w-28'
+    },
+    {
       header: 'Nome',
       accessor: (product: Produto) => product.nome,
       cell: (product: Produto) => (
-        <div className="font-medium text-gray-900">{product.nome}</div>
+        <div>
+          <div className="font-medium text-gray-900">{product.nome}</div>
+          {product.descricao && (
+            <div className="text-sm text-gray-500 truncate max-w-xs">{product.descricao}</div>
+          )}
+        </div>
       )
     },
     {

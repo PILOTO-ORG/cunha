@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient.ts';
+import { apiClient } from './apiClient';
 import type {
   Cliente,
   ClienteFilter,
@@ -46,9 +46,9 @@ export class ClienteService {
       });
     }
     
-    // Always ensure we're not showing removed clients by default
-    if (!queryParams.has('removido')) {
-      queryParams.append('removido', 'false');
+    // Always ensure we're showing only active clients by default
+    if (!queryParams.has('ativo')) {
+      queryParams.append('ativo', 'true');
     }
     
     const queryString = queryParams.toString();
@@ -117,13 +117,18 @@ export class ClienteService {
   }
 
   /**
-   * Soft delete a client by setting removido=true
+   * Soft delete a client by setting ativo=false
    * 
    * @param id - ID of the client to deactivate
    * @returns Promise with the updated client
    */
   static async softDeleteCliente(id: number): Promise<Cliente> {
-    const response = await apiClient.patch<Cliente>(`/clientes/${id}`, { removido: true });
+    console.log(`[ClienteService] softDeleteCliente - ID: ${id}`);
+    console.log(`[ClienteService] Enviando payload: { ativo: false }`);
+    
+    const response = await apiClient.patch<Cliente>(`/clientes/${id}`, { ativo: false });
+    
+    console.log(`[ClienteService] softDeleteCliente response:`, response.data);
     return response.data;
   }
 

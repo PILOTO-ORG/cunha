@@ -1,15 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { OrcamentoService } from '../services/orcamentoService.ts';
+import { OrcamentoService } from '../services/orcamentoService';
 import type { 
-  Orcamento, 
-  Reserva, 
   OrcamentoFilter, 
   ReservaFilter, 
   CriarOrcamentoRequest,
   AtualizarOrcamentoRequest,
   CriarReservaRequest,
-  AtualizarReservaRequest,
-  PaginatedResponse 
+  AtualizarReservaRequest
 } from '../types/api';
 
 // Query Keys
@@ -41,7 +38,7 @@ export const RESERVA_QUERY_KEYS = {
 export function useOrcamentos(filtros?: OrcamentoFilter) {
   return useQuery({
     queryKey: ORCAMENTO_QUERY_KEYS.list(filtros),
-    queryFn: () => OrcamentoService.listarOrcamentos(filtros),
+    queryFn: () => OrcamentoService.listarOrcamentos(filtros as any),
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }
@@ -78,7 +75,7 @@ export function useCriarOrcamento() {
 
   return useMutation({
     mutationFn: (orcamento: CriarOrcamentoRequest) => 
-      OrcamentoService.criarOrcamento(orcamento),
+      OrcamentoService.criarOrcamento(orcamento as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORCAMENTO_QUERY_KEYS.all });
     },
@@ -93,7 +90,7 @@ export function useAtualizarOrcamento() {
 
   return useMutation({
     mutationFn: ({ id, dados }: { id: number; dados: AtualizarOrcamentoRequest }) =>
-      OrcamentoService.atualizarOrcamento(id, dados),
+      OrcamentoService.atualizarOrcamento(id, dados as any),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ORCAMENTO_QUERY_KEYS.detail(id) });
       queryClient.invalidateQueries({ queryKey: ORCAMENTO_QUERY_KEYS.lists() });

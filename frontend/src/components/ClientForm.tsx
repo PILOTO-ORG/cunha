@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useCriarCliente, useAtualizarCliente } from '../hooks/useClientes.ts';
-import Button from './ui/Button.tsx';
-import Input from './ui/Input.tsx';
-import { Cliente, AtualizarClienteRequest, CriarClienteRequest } from '../types/api.ts';
+import React, { useEffect, useState } from 'react';
+import { useCriarCliente, useAtualizarCliente } from '../hooks/useClientes';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import { Cliente, AtualizarClienteRequest, CriarClienteRequest } from '../types/api';
 import { toast } from 'react-hot-toast';
+import { buscarEnderecoPorCep } from '../services/cepService';
 
 interface ClientFormProps {
   client?: Cliente | null;
@@ -11,18 +12,99 @@ interface ClientFormProps {
   onCancel?: () => void;
 }
 
-const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) => {
-  const [formData, setFormData] = useState({
-    nome: '',
-    telefone: '',
-    email: '',
-    cpf_cnpj: '',
-    rg_inscricao_estadual: '',
-    endereco: '',
-    cep: ''
-  });
+type FormData = {
+  nome: string;
+  telefone: string;
+  email: string;
+  cpf_cnpj: string;
+  cep: string;
+  rua: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  complemento: string;
+  endereco_completo: string;
+  forma_pagamento: string;
+  observacoes: string;
+};
 
+const initialFormData: FormData = {
+  nome: '',
+  telefone: '',
+  email: '',
+  cpf_cnpj: '',
+  cep: '',
+  rua: '',
+  numero: '',
+  bairro: '',
+  cidade: '',
+  estado: '',
+  complemento: '',
+  endereco_completo: '',
+  forma_pagamento: '',
+  observacoes: ''
+};
+
+const sanitizeDigits = (value: string) => value.replace(/\D/g, '');
+
+const formatCep = (value: string) => {
+  const digits = sanitizeDigits(value).slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+};
+
+const formatPhone = (value: string) => {
+  const digits = sanitizeDigits(value);
+  if (digits.length <= 10) {
+    return digits.replace(/(\d{2})(\d{4})(\d{0,4})/, (_, d1, d2, d3) => {
+      if (!d3) return `(${d1}) ${d2}`;
+      return `(${d1}) ${d2}-${d3}`;
+    });
+  }
+  return digits.replace(/(\d{2})(\d{5})(\d{0,4})/, (_, d1, d2, d3) => {
+    if (!d3) return `(${d1}) ${d2}`;
+    return `(${d1}) ${d2}-${d3}`;
+  });
+};
+
+const formatCPFCNPJ = (value: string) => {
+  const digits = sanitizeDigits(value);
+  if (digits.length <= 11) {
+    return digits
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{2})$/, '$1-$2');
+  }
+  return digits
+    .replace(/(\d{2})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1/$2')
+    .replace(/(\d{4})(\d{2})$/, '$1-$2');
+};
+
+const buildEnderecoCompleto = (data: Pick<FormData, 'rua' | 'numero' | 'bairro' | 'cidade' | 'estado' | 'complemento'>) => {
+  const linha1 = [data.rua, data.numero].filter(Boolean).join(', ');
+  const linha2 = [data.bairro, data.cidade, data.estado].filter(Boolean).join(' - ');
+  const base = [linha1, linha2].filter(Boolean).join(' · ');
+  if (!base) return data.complemento || '';
+  return data.complemento ? `${base} (${data.complemento})` : base;
+};
+
+const removeUndefined = <T extends Record<string, any>>(obj: T): T => {
+  const cleaned: Record<string, any> = {};
+  Object.entries(obj).forEach(([key, value]) => {
+    if (value !== undefined) {
+      cleaned[key] = value;
+    }
+  });
+  return cleaned as T;
+};
+
+const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) => {
+  const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isFetchingCep, setIsFetchingCep] = useState(false);
 
   const createMutation = useCriarCliente();
   const updateMutation = useAtualizarCliente();
@@ -36,10 +118,19 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
         telefone: client.telefone || '',
         email: client.email || '',
         cpf_cnpj: client.cpf_cnpj || '',
-        rg_inscricao_estadual: client.rg_inscricao_estadual || '',
-        endereco: client.endereco || '',
-        cep: client.cep || ''
+        cep: client.cep ? formatCep(client.cep) : '',
+        rua: client.rua || '',
+        numero: client.numero || '',
+        bairro: client.bairro || '',
+        cidade: client.cidade || '',
+        estado: client.estado || '',
+        complemento: client.complemento || '',
+        endereco_completo: client.endereco_completo || client.endereco || '',
+        forma_pagamento: client.forma_pagamento || '',
+        observacoes: client.observacoes || ''
       });
+    } else {
+      setFormData(initialFormData);
     }
   }, [client]);
 
@@ -49,21 +140,15 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
   };
 
   const validatePhone = (phone: string) => {
-    // eslint-disable-next-line no-useless-escape
-    const phoneRegex = /^[\d\s\-\(\)]+$/;
-    const digits = phone.replace(/\D/g, '');
-    return phoneRegex.test(phone) && digits.length >= 10;
+    const digits = sanitizeDigits(phone);
+    return digits.length >= 10;
   };
 
-  const validateCPFCNPJ = (document: string) => {
-    const digits = document.replace(/\D/g, '');
-    return digits.length === 11 || digits.length === 14;
-  };
+  const validateCep = (cep: string) => sanitizeDigits(cep).length === 8;
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Required fields validation
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome é obrigatório';
     }
@@ -77,76 +162,142 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
     if (!formData.email.trim()) {
       newErrors.email = 'Email é obrigatório';
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Email deve ter um formato válido';
+      newErrors.email = 'Informe um email válido';
     }
 
-    // Optional fields validation
-    if (formData.cpf_cnpj) {
-      if (!validateCPFCNPJ(formData.cpf_cnpj)) {
-        newErrors.cpf_cnpj = 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos';
-      }
+    if (!formData.cep.trim()) {
+      newErrors.cep = 'CEP é obrigatório';
+    } else if (!validateCep(formData.cep)) {
+      newErrors.cep = 'CEP deve conter 8 dígitos';
     }
 
-    if (formData.cep) {
-      if (!/^\d{5}-?\d{3}$/.test(formData.cep)) {
-        newErrors.cep = 'CEP deve estar no formato 00000-000';
-      }
+    if (!formData.rua.trim()) {
+      newErrors.rua = 'Rua é obrigatória';
+    }
+
+    if (!formData.numero.trim()) {
+      newErrors.numero = 'Número é obrigatório';
+    }
+
+    if (!formData.bairro.trim()) {
+      newErrors.bairro = 'Bairro é obrigatório';
+    }
+
+    if (!formData.cidade.trim()) {
+      newErrors.cidade = 'Cidade é obrigatória';
+    }
+
+    if (!formData.estado.trim()) {
+      newErrors.estado = 'Estado é obrigatório';
+    } else if (formData.estado.trim().length !== 2) {
+      newErrors.estado = 'Informe a UF com 2 letras';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFieldChange = (field: keyof FormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleCepLookup = async () => {
+    const digits = sanitizeDigits(formData.cep);
+    if (digits.length !== 8) {
+      if (digits.length > 0) {
+        setErrors((prev) => ({ ...prev, cep: 'CEP deve conter 8 dígitos' }));
+      }
+      return;
+    }
+
+    try {
+      setIsFetchingCep(true);
+      const data = await buscarEnderecoPorCep(digits);
+      setFormData((prev) => {
+        const rua = data.logradouro || prev.rua;
+        const bairro = data.bairro || prev.bairro;
+        const cidade = data.localidade || prev.cidade;
+        const estado = data.uf || prev.estado;
+        const complemento = data.complemento || prev.complemento;
+
+        return {
+          ...prev,
+          cep: formatCep(digits),
+          rua,
+          bairro,
+          cidade,
+          estado,
+          complemento,
+          endereco_completo: prev.endereco_completo || buildEnderecoCompleto({
+            rua,
+            numero: prev.numero,
+            bairro,
+            cidade,
+            estado,
+            complemento
+          })
+        };
+      });
+      toast.success('Endereço preenchido a partir do CEP');
+    } catch (error) {
+      console.error('Erro ao buscar CEP:', error);
+      toast.error(error instanceof Error ? error.message : 'Não foi possível buscar o CEP informado');
+    } finally {
+      setIsFetchingCep(false);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     if (!validateForm()) {
       return;
     }
 
-    const baseData: CriarClienteRequest = {
+    const enderecoCompleto = formData.endereco_completo.trim()
+      || buildEnderecoCompleto({
+        rua: formData.rua.trim(),
+        numero: formData.numero.trim(),
+        bairro: formData.bairro.trim(),
+        cidade: formData.cidade.trim(),
+        estado: formData.estado.trim().toUpperCase(),
+        complemento: formData.complemento.trim()
+      })
+      || undefined;
+
+    const basePayload = removeUndefined<CriarClienteRequest>({
       nome: formData.nome.trim(),
-      telefone: formData.telefone.trim().replace(/\D/g, ''),
-      email: formData.email.trim(),
-      cpf_cnpj: formData.cpf_cnpj ? formData.cpf_cnpj.trim().replace(/\D/g, '') : undefined,
-      rg_inscricao_estadual: formData.rg_inscricao_estadual.trim() || undefined,
-      endereco: formData.endereco.trim() || undefined,
-      cep: formData.cep ? formData.cep.trim().replace(/\D/g, '') : undefined
-    };
+      telefone: formData.telefone.trim() || undefined,
+      email: formData.email.trim() || undefined,
+      cpf_cnpj: formData.cpf_cnpj ? sanitizeDigits(formData.cpf_cnpj) : undefined,
+      cep: sanitizeDigits(formData.cep) || undefined,
+      rua: formData.rua.trim() || undefined,
+      numero: formData.numero.trim() || undefined,
+      bairro: formData.bairro.trim() || undefined,
+      cidade: formData.cidade.trim() || undefined,
+      estado: formData.estado.trim().toUpperCase() || undefined,
+      complemento: formData.complemento.trim() || undefined,
+      endereco_completo: enderecoCompleto,
+      forma_pagamento: formData.forma_pagamento.trim() || undefined,
+      observacoes: formData.observacoes.trim() || undefined
+    } as CriarClienteRequest);
 
     try {
       if (isEditing && client) {
-        const updateData: Partial<AtualizarClienteRequest> = { ...baseData };
-        
-        // Only include fields that have changed to minimize the payload
-        const changedData = Object.entries(updateData).reduce((acc, [key, value]) => {
-          const clientValue = client[key as keyof Cliente];
-          // Only include if the value has actually changed
-          if (clientValue !== value) {
-            acc[key as keyof AtualizarClienteRequest] = value as any;
-          }
-          return acc;
-        }, {} as Partial<AtualizarClienteRequest>);
-
-        if (Object.keys(changedData).length > 0) {
-          await updateMutation.mutateAsync({
-            id: client.id_cliente,
-            dados: changedData
-          });
-          toast.success('Cliente atualizado com sucesso!');
-        } else {
-          toast('Nenhuma alteração detectada', { icon: 'ℹ️' });
-          onSuccess?.();
-          return;
-        }
-      } else {
-        // For new clients, include all fields
-        await createMutation.mutateAsync({
-          ...baseData,
-          removido: false // Ensure new clients are not marked as removed
+        const updatePayload: AtualizarClienteRequest = basePayload;
+        await updateMutation.mutateAsync({
+          id: client.id_cliente,
+          dados: updatePayload
         });
+        toast.success('Cliente atualizado com sucesso!');
+      } else {
+        await createMutation.mutateAsync(basePayload);
         toast.success('Cliente criado com sucesso!');
       }
+
       onSuccess?.();
     } catch (error) {
       console.error('Erro ao salvar cliente:', error);
@@ -154,160 +305,142 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
     }
   };
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 10) {
-      return digits.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-    } else {
-      return digits.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-    }
-  };
-
-  const formatCPFCNPJ = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 11) {
-      return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    } else {
-      return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
-  };
-
-  const formatCEP = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 5) return digits;
-    return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
-  };
-
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
-          Nome Completo *
-        </label>
+      <Input
+        label="Nome Completo *"
+        value={formData.nome}
+        onChange={(event) => handleFieldChange('nome', event.target.value)}
+        placeholder="Ex: João da Silva"
+        error={errors.nome}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
-          id="nome"
-          type="text"
-          value={formData.nome}
-          onChange={(e) => handleChange('nome', e.target.value)}
-          placeholder="Ex: João da Silva"
-          error={errors.nome}
-          className="mb-0"
+          label="Telefone *"
+          value={formData.telefone}
+          onChange={(event) => handleFieldChange('telefone', formatPhone(event.target.value))}
+          placeholder="(11) 99999-9999"
+          error={errors.telefone}
+          maxLength={15}
+        />
+        <Input
+          label="Email *"
+          type="email"
+          value={formData.email}
+          onChange={(event) => handleFieldChange('email', event.target.value)}
+          placeholder="joao@email.com"
+          error={errors.email}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-1">
-            Telefone *
-          </label>
-          <Input
-            id="telefone"
-            type="text"
-            value={formData.telefone}
-            onChange={(e) => {
-              const formatted = formatPhone(e.target.value);
-              handleChange('telefone', formatted);
-            }}
-            placeholder="(11) 99999-9999"
-            error={errors.telefone}
-            className="mb-0"
-            maxLength={15}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email *
-          </label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleChange('email', e.target.value)}
-            placeholder="joao@email.com"
-            error={errors.email}
-            className="mb-0"
-          />
-        </div>
+        <Input
+          label="CPF/CNPJ"
+          value={formData.cpf_cnpj}
+          onChange={(event) => handleFieldChange('cpf_cnpj', formatCPFCNPJ(event.target.value))}
+          placeholder="000.000.000-00 ou 00.000.000/0001-00"
+          maxLength={18}
+          error={errors.cpf_cnpj}
+        />
+        <Input
+          label="Forma de pagamento preferida"
+          value={formData.forma_pagamento}
+          onChange={(event) => handleFieldChange('forma_pagamento', event.target.value)}
+          placeholder="Ex: PIX, Cartão, Boleto..."
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="cpf_cnpj" className="block text-sm font-medium text-gray-700 mb-1">
-            CPF/CNPJ
-          </label>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div className="md:col-span-3">
           <Input
-            id="cpf_cnpj"
-            type="text"
-            value={formData.cpf_cnpj}
-            onChange={(e) => {
-              const formatted = formatCPFCNPJ(e.target.value);
-              handleChange('cpf_cnpj', formatted);
-            }}
-            placeholder="000.000.000-00 ou 00.000.000/0001-00"
-            error={errors.cpf_cnpj}
-            className="mb-0"
-            maxLength={18}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="rg_inscricao_estadual" className="block text-sm font-medium text-gray-700 mb-1">
-            RG / Inscrição Estadual
-          </label>
-          <Input
-            id="rg_inscricao_estadual"
-            type="text"
-            value={formData.rg_inscricao_estadual}
-            onChange={(e) => handleChange('rg_inscricao_estadual', e.target.value)}
-            placeholder="Digite o RG ou Inscrição Estadual"
-            className="mb-0"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="cep" className="block text-sm font-medium text-gray-700 mb-1">
-            CEP
-          </label>
-          <Input
-            id="cep"
-            type="text"
+            label="CEP *"
             value={formData.cep}
-            onChange={(e) => {
-              const formatted = formatCEP(e.target.value);
-              handleChange('cep', formatted);
-            }}
+            onChange={(event) => handleFieldChange('cep', formatCep(event.target.value))}
             placeholder="00000-000"
             error={errors.cep}
-            className="mb-0"
+            onBlur={handleCepLookup}
             maxLength={9}
           />
         </div>
-        
-        <div>
-          <label htmlFor="endereco" className="block text-sm font-medium text-gray-700 mb-1">
-            Endereço Completo
-          </label>
-          <Input
-            id="endereco"
-            type="text"
-            value={formData.endereco}
-            onChange={(e) => handleChange('endereco', e.target.value)}
-            placeholder="Rua, número, complemento, bairro, cidade - UF"
-            className="mb-0"
-          />
+        <div className="md:col-span-1 mb-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCepLookup}
+            disabled={isFetchingCep || sanitizeDigits(formData.cep).length !== 8}
+            className="w-full"
+          >
+            {isFetchingCep ? 'Buscando...' : 'Buscar CEP'}
+          </Button>
         </div>
+      </div>
+
+      <Input
+        label="Endereço completo"
+        value={formData.endereco_completo}
+        onChange={(event) => handleFieldChange('endereco_completo', event.target.value)}
+        placeholder="Rua, número, bairro, cidade - UF"
+        helperText="Preenchido automaticamente, mas você pode ajustar se necessário"
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          label="Rua *"
+          value={formData.rua}
+          onChange={(event) => handleFieldChange('rua', event.target.value)}
+          error={errors.rua}
+        />
+        <Input
+          label="Número *"
+          value={formData.numero}
+          onChange={(event) => handleFieldChange('numero', event.target.value)}
+          error={errors.numero}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Input
+          label="Bairro *"
+          value={formData.bairro}
+          onChange={(event) => handleFieldChange('bairro', event.target.value)}
+          error={errors.bairro}
+        />
+        <Input
+          label="Cidade *"
+          value={formData.cidade}
+          onChange={(event) => handleFieldChange('cidade', event.target.value)}
+          error={errors.cidade}
+        />
+        <Input
+          label="Estado (UF) *"
+          value={formData.estado}
+          onChange={(event) => handleFieldChange('estado', event.target.value.toUpperCase().slice(0, 2))}
+          maxLength={2}
+          error={errors.estado}
+        />
+      </div>
+
+      <Input
+        label="Complemento"
+        value={formData.complemento}
+        onChange={(event) => handleFieldChange('complemento', event.target.value)}
+        placeholder="Apartamento, bloco, ponto de referência..."
+      />
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Observações
+        </label>
+        <textarea
+          value={formData.observacoes}
+          onChange={(event) => handleFieldChange('observacoes', event.target.value)}
+          placeholder="Digite observações sobre o cliente..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          rows={3}
+        />
       </div>
 
       <div className="flex justify-end space-x-3 pt-4 border-t">
@@ -322,6 +455,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ client, onSuccess, onCancel }) 
         <Button
           type="submit"
           loading={isLoading}
+          disabled={isLoading}
         >
           {isEditing ? 'Atualizar Cliente' : 'Criar Cliente'}
         </Button>

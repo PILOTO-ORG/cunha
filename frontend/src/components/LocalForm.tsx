@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useCriarLocal, useAtualizarLocal } from '../hooks/useLocais.ts';
-import Button from './ui/Button.tsx';
-import Input from './ui/Input.tsx';
-import Select from './ui/Select.tsx';
-import type { Option } from '../types/select.ts';
+import { useCriarLocal, useAtualizarLocal } from '../hooks/useLocais';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
 import type { Local, CriarLocalRequest, AtualizarLocalRequest } from '../types/api';
 import { toast } from 'react-hot-toast';
 
@@ -18,16 +16,16 @@ const LocalForm: React.FC<LocalFormProps> = ({ local, onSuccess, onCancel }) => 
   
   // Form state with proper types for form handling
   const [formData, setFormData] = useState({
-    descricao: '',
-    tipo: '',
+    nome: '',
     endereco: '',
     capacidade: '',
+    valor_locacao: '',
     observacoes: ''
   } as {
-    descricao: string;
-    tipo: string;
+    nome: string;
     endereco: string;
     capacidade: string;
+    valor_locacao: string;
     observacoes: string;
   });
   
@@ -37,10 +35,10 @@ const LocalForm: React.FC<LocalFormProps> = ({ local, onSuccess, onCancel }) => 
   useEffect(() => {
     if (local) {
       setFormData({
-        descricao: local.descricao || '',
-        tipo: local.tipo || '',
+        nome: local.nome || '',
         endereco: local.endereco || '',
         capacidade: local.capacidade?.toString() || '',
+        valor_locacao: local.valor_locacao?.toString() || '',
         observacoes: local.observacoes || ''
       });
     }
@@ -76,12 +74,16 @@ const LocalForm: React.FC<LocalFormProps> = ({ local, onSuccess, onCancel }) => 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.descricao.trim()) {
-      newErrors.descricao = 'A descrição é obrigatória';
+    if (!formData.nome.trim()) {
+      newErrors.nome = 'O nome é obrigatório';
     }
     
-    if (!formData.tipo) {
-      newErrors.tipo = 'O tipo é obrigatório';
+    if (!formData.capacidade || parseInt(formData.capacidade) <= 0) {
+      newErrors.capacidade = 'A capacidade deve ser maior que zero';
+    }
+    
+    if (!formData.valor_locacao || parseFloat(formData.valor_locacao) <= 0) {
+      newErrors.valor_locacao = 'O valor de locação deve ser maior que zero';
     }
     
     setErrors(newErrors);
@@ -97,10 +99,11 @@ const LocalForm: React.FC<LocalFormProps> = ({ local, onSuccess, onCancel }) => 
     }
     
     try {
-      const { capacidade, ...restData } = formData;
+      const { capacidade, valor_locacao, ...restData } = formData;
       const localData: CriarLocalRequest = {
         ...restData,
-        capacidade: capacidade ? parseInt(capacidade, 10) : undefined
+        capacidade: capacidade ? parseInt(capacidade, 10) : 0,
+        valor_locacao: valor_locacao ? parseFloat(valor_locacao) : 0
       };
       
       if (isEditing && local) {
@@ -123,65 +126,51 @@ const LocalForm: React.FC<LocalFormProps> = ({ local, onSuccess, onCancel }) => 
       toast.error('Ocorreu um erro ao salvar o local. Tente novamente.');
     }
   };
-  
-  // Local types for the select input
-  const tiposLocal = [
-    { value: 'salao', label: 'Salão de Festas' },
-    { value: 'quadra', label: 'Quadra Esportiva' },
-    { value: 'churrasqueira', label: 'Churrasqueira' },
-    { value: 'sala_reuniao', label: 'Sala de Reunião' },
-    { value: 'outro', label: 'Outro' },
-  ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div>
-          <label htmlFor="descricao" className="block text-sm font-medium text-gray-700 mb-1">
-            Descrição <span className="text-red-500">*</span>
+          <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
+            Nome <span className="text-red-500">*</span>
           </label>
           <Input
-            id="descricao"
+            id="nome"
             type="text"
-            value={formData.descricao}
-            onChange={(e) => handleChange('descricao', e.target.value)}
+            value={formData.nome}
+            onChange={(e) => handleChange('nome', e.target.value)}
             placeholder="Ex: Salão de Festas Principal"
-            error={errors.descricao}
+            error={errors.nome}
           />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="tipo" className="block text-sm font-medium text-gray-700 mb-1">
-              Tipo <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="tipo"
-              value={formData.tipo}
-              onChange={(e) => handleChange('tipo', e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-            >
-              <option value="">Selecione um tipo</option>
-              {tiposLocal.map(tipo => (
-                <option key={tipo.value} value={tipo.value}>
-                  {tipo.label}
-                </option>
-              ))}
-            </select>
-            {errors.tipo && <p className="mt-1 text-sm text-red-600">{errors.tipo}</p>}
-          </div>
-          
-          <div>
             <label htmlFor="capacidade" className="block text-sm font-medium text-gray-700 mb-1">
-              Capacidade (pessoas)
+              Capacidade <span className="text-red-500">*</span>
             </label>
             <Input
               id="capacidade"
               type="number"
-              min="1"
               value={formData.capacidade}
               onChange={(e) => handleChange('capacidade', e.target.value)}
               placeholder="Ex: 100"
+              error={errors.capacidade}
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="valor_locacao" className="block text-sm font-medium text-gray-700 mb-1">
+              Valor de Locação <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="valor_locacao"
+              type="number"
+              step="0.01"
+              value={formData.valor_locacao}
+              onChange={(e) => handleChange('valor_locacao', e.target.value)}
+              placeholder="Ex: 500.00"
+              error={errors.valor_locacao}
             />
           </div>
         </div>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import DashboardService from '../services/dashboardService.ts';
+import DashboardService from '../services/dashboardService';
 import { Link, useNavigate } from 'react-router-dom';
-import DashboardCard from '../components/DashboardCard.tsx';
-import QuickAction from '../components/QuickAction.tsx';
-import AIAssistant from '../components/AIAssistant.tsx';
+import DashboardCard from '../components/DashboardCard';
+import QuickAction from '../components/QuickAction';
+import AIAssistant from '../components/AIAssistant';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,74 +30,89 @@ const HomePage: React.FC = () => {
 
   const dashboardData = dashboardIndicators && dashboardIndicators.data ? [
     {
-      title: 'Reservas que Acabam Hoje',
-      value: dashboardIndicators.data.reservas_fim_hoje ?? '-',
-      icon: '⏰',
-      color: 'yellow' as 'yellow',
-    },
-    {
-      title: 'Reservas Concluídas',
-      value: dashboardIndicators.data.reservas_concluidas ?? '-',
-      icon: '✅',
-      color: 'green' as 'green',
-    },
-    {
       title: 'Orçamentos Pendentes',
-      value: dashboardIndicators.data.orcamentos_pendentes ?? '-',
+      value: dashboardIndicators.data.orcamentos_pendentes ?? '0',
       icon: '📄',
-      color: 'yellow' as 'yellow',
+      color: 'yellow' as const,
+      onClick: () => navigate('/orcamentos')
     },
     {
       title: 'Reservas Ativas',
-      value: dashboardIndicators.data.reservas_ativas ?? '-',
+      value: dashboardIndicators.data.reservas_ativas ?? '0',
       icon: '📅',
-      color: 'blue' as 'blue',
+      color: 'blue' as const,
+      onClick: () => navigate('/reservas')
     },
     {
       title: 'Viagens Hoje',
-      value: dashboardIndicators.data.viagens_hoje ?? '-',
+      value: dashboardIndicators.data.viagens_hoje ?? '0',
       icon: '🚌',
-      color: 'green' as 'green',
+      color: 'green' as const,
     },
     {
       title: 'Total de Clientes',
-      value: dashboardIndicators.data.total_clientes ?? '-',
+      value: dashboardIndicators.data.total_clientes ?? '0',
       icon: '👥',
-      color: 'indigo' as 'indigo',
+      color: 'indigo' as const,
+      onClick: () => navigate('/clientes')
     },
     {
       title: 'Total de Locais',
-      value: dashboardIndicators.data.total_locais ?? '-',
+      value: dashboardIndicators.data.total_locais ?? '0',
       icon: '🏢',
-      color: 'purple' as 'purple',
+      color: 'purple' as const,
+      onClick: () => navigate('/locais')
     },
     {
-      title: 'Total de Produtos Diferentes',
-      value: dashboardIndicators.data.total_produtos ?? '-',
+      title: 'Total de Produtos',
+      value: dashboardIndicators.data.total_produtos ?? '0',
       icon: '📦',
-      color: 'blue' as 'blue',
+      color: 'blue' as const,
+      onClick: () => navigate('/produtos')
     },
     {
-      title: 'Produtos com Campos Faltando',
-      value: dashboardIndicators.data.produtos_campos_faltando ?? '-',
+      title: 'Produtos Incompletos',
+      value: dashboardIndicators.data.produtos_campos_faltando ?? '0',
       icon: '⚠️',
-      color: 'red' as 'red',
+      color: 'red' as const,
+      onClick: () => navigate('/produtos?filtro=incompletos')
+    },
+    {
+      title: 'Reservas Finalizando Hoje',
+      value: dashboardIndicators.data.reservas_fim_hoje ?? '0',
+      icon: '⏰',
+      color: 'yellow' as const,
+      onClick: () => navigate('/reservas?filtro=finalizando-hoje')
+    },
+    {
+      title: 'Reservas Concluídas',
+      value: dashboardIndicators.data.reservas_concluidas ?? '0',
+      icon: '✅',
+      color: 'green' as const,
+      onClick: () => navigate('/reservas?filtro=concluidas')
     }
   ] : [];
 
   const quickActions = [
     {
+      title: 'Criar Orçamento',
+      description: 'Selecione produtos e crie um orçamento',
+      icon: '🛒',
+      color: 'blue' as const,
+      onClick: () => navigate('/orcamentos/marketplace')
+    },
+    {
       title: 'Nova Reserva',
       description: 'Criar uma nova reserva para cliente',
       icon: '➕',
-      color: 'blue' as const,
+      color: 'green' as const,
       onClick: () => navigate('/reservas/nova')
     },
     {
       title: 'Consultar Estoque',
       description: 'Verificar disponibilidade de produtos',
       icon: '🔍',
-      color: 'green' as const,
+      color: 'indigo' as const,
       onClick: () => navigate('/produtos')
     },
     {

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import MovimentoService from '../services/movimentoService.ts';
+import MovimentoService from '../services/movimentoService';
 import type { Movimento, MovimentoFilter, CriarMovimentoRequest, PaginatedResponse } from '../types/api';
 
 // Query Keys

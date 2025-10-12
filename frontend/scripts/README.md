@@ -1,6 +1,6 @@
-# Scripts de Teste da API - Cunha Festas ERP
+# Scripts de Teste da API - Cunha Festas cunha
 
-Este diretório contém scripts para testar todos os endpoints da API do sistema ERP integrado com n8n.
+Este diretório contém scripts para testar todos os endpoints da API do sistema cunha integrado com n8n.
 
 ## 📁 Arquivos Disponíveis
 
@@ -149,7 +149,7 @@ Para testar em um ambiente diferente, você pode:
 
 ### Exemplo de Saída do Script Node.js:
 ```
-🚀 INICIANDO TESTES DA API CUNHA FESTAS ERP
+🚀 INICIANDO TESTES DA API CUNHA FESTAS cunha
 
 📋 CATEGORIA: PRODUTOS
 ==================================================

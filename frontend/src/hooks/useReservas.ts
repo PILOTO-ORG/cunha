@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import ReservaService from '../services/reservaService.ts';
-import type { Reserva, ReservaFilter, CriarReservaRequest, AtualizarReservaRequest, PaginatedResponse } from '../types/api';
+import ReservaService from '../services/reservaService';
+import type { ReservaFilter, CriarReservaRequest, AtualizarReservaRequest } from '../types/api';
 
 // Query Keys
 export const RESERVA_QUERY_KEYS = {
@@ -98,18 +98,6 @@ export function useReservasPorCliente(id_cliente: number, enabled: boolean = tru
     queryKey: RESERVA_QUERY_KEYS.porCliente(id_cliente),
     queryFn: () => ReservaService.buscarPorCliente(id_cliente),
     enabled: enabled && !!id_cliente,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  });
-}
-
-/**
- * Hook para buscar reservas por produto
- */
-export function useReservasPorProduto(id_produto: number, enabled: boolean = true) {
-  return useQuery({
-    queryKey: RESERVA_QUERY_KEYS.porProduto(id_produto),
-    queryFn: () => ReservaService.buscarPorProduto(id_produto),
-    enabled: enabled && !!id_produto,
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }

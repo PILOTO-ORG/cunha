@@ -1,12 +1,16 @@
-# Dockerfile para frontend React
-FROM node:20-alpine AS build
-WORKDIR /app
-COPY frontend/package*.json ./
-RUN npm install --production
-COPY frontend/. ./
-RUN npm run build
+# Development Dockerfile
+FROM node:20-alpine
 
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy app files
+COPY . .
+
+# Start development server
+CMD ["npm", "start"]

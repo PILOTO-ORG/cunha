@@ -69,7 +69,7 @@ Atualizado para:
 ```
 
 ### **Passo 2: Substituir Código Principal**
-1. No n8n, acessar o workflow "Cunha Festas ERP"
+1. No n8n, acessar o workflow "Cunha Festas cunha"
 2. Localizar o node "Code" principal (primeiro node após o webhook)
 3. Substituir todo o código pelo conteúdo de `n8n-code-fixed.js`
 4. Salvar as alterações

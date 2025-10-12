@@ -1,9 +1,8 @@
 import { Produto, Cliente, Local } from './api';
 
 // Status types
-export type StatusReserva = 'iniciada' | 'ativa' | 'concluída' | 'cancelada';
-export type StatusOrcamento = 'pendente' | 'aprovado' | 'rejeitado' | 'expirado';
-export type StatusGeral = StatusReserva | StatusOrcamento;
+export type StatusOrcamento = 'pendente' | 'aprovado' | 'cancelado';
+export type StatusGeral = StatusOrcamento;
 
 export interface ItemOrcamentoAgrupado {
   id_item_reserva: number;
@@ -22,8 +21,9 @@ export interface OrcamentoAgrupado {
   cliente_nome: string;
   cliente?: Cliente;
   local?: Local;
-  data_inicio: string;
-  data_fim: string;
+  data_evento: string;
+  data_retirada: string;
+  data_devolucao: string;
   data_criacao: string;
   status: StatusGeral;
   frete?: number;
@@ -35,7 +35,4 @@ export interface OrcamentoAgrupado {
   valor_total: number;
   observacoes?: string;
   link_drive?: string;
-  dias_reservados?: number;
-  data_saida?: string;
-  data_retorno?: string;
 }

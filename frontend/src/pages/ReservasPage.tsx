@@ -1,422 +1,185 @@
-import React, { useState, useMemo } from 'react';
-import Table from '../components/ui/Table.tsx';
-import Button from '../components/ui/Button.tsx';
-import Modal from '../components/ui/Modal.tsx';
-import LoadingSpinner from '../components/ui/LoadingSpinner.tsx';
-import Input from '../components/ui/Input.tsx';
-import { useReservas, useRemoverReserva } from '../hooks/useReservas.ts';
-import { useClientes } from '../hooks/useClientes.ts';
-import { useProdutos } from '../hooks/useProdutos.ts';
-import ReservaForm from '../components/ReservaForm.tsx';
-import OrcamentoForm from '../components/OrcamentoForm.tsx';
-import type { Reserva, Cliente, Produto } from '../types/api';
-import { formatDate, formatDateTime, formatCurrency } from '../utils/formatters.ts';
-import type { TableColumn } from '../components/ui/Table.tsx';
-import { jwtFetch } from '../services/jwtFetch.ts';
-import ReservaService from '../services/reservaService.ts';
-import { useLocais } from '../hooks/useLocais.ts';
-
-interface ReservaAgrupada {
-  id_reserva: number;
-  id_cliente: number;
-  cliente_nome: string;
-  data_inicio: string;
-  data_fim: string;
-  status: string;
-  itens: {
-    id_item_reserva: number;
-    id_produto: number;
-    produto_nome: string;
-    quantidade: number;
-    valor_unitario?: number;
-  }[];
-  valor_total: number;
-  observacoes?: string;
-}
-
-// Add print function for reservations
-async function imprimirReserva(reserva: ReservaAgrupada) {
-  console.log('Gerando planilha para reserva', reserva);
-  const clientesStorage: Cliente[] = JSON.parse(localStorage.getItem('clientes') || '[]');
-  const produtosStorage: Produto[] = JSON.parse(localStorage.getItem('produtos') || '[]');
-  const clienteFull = clientesStorage.find(c => c.id_cliente === reserva.id_cliente) || null;
-  const itensDetalhados = reserva.itens.map(item => {
-    const produtoFull = produtosStorage.find(p => p.id_produto === item.id_produto) || null;
-    return { ...item, produto: produtoFull, valor_danificacao: produtoFull?.valor_danificacao || 0 };
-  });
-  const payload = {
-    ...reserva,
-    cliente: clienteFull,
-    itens: itensDetalhados,
-    // format dates as YYYY-MM-DD
-    data_inicio: reserva.data_inicio.split('T')[0],
-    data_fim: reserva.data_fim.split('T')[0],
-    metadata: { sistema: 'Sistema de Gestão Cunha', versao: '1.0.0', data_geracao: new Date().toISOString() }
-  };
-  const resp = await jwtFetch('https://n8n.piloto.live/webhook/cunha-drive', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-  });
-  if (!resp.ok) throw new Error('Erro ao gerar planilha');
-  const data = await resp.json();
-  if (data.link) {
-    window.open(`https://drive.google.com/file/d/${data.link}/view`, '_blank');
-    // optionally update link on reservation if needed
-  } else {
-    alert('Erro ao obter link da planilha');
-  }
-}
+import React, { useState } from 'react';
+import { useReservas } from '../hooks/useReservas';
+import { useClientes } from '../hooks/useClientes';
+import { useLocais } from '../hooks/useLocais';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import ReservaForm from '../components/ReservaForm';
 
 const ReservasPage: React.FC = () => {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ativa' | 'concluída' | 'cancelada' | 'iniciada' | ''>('');
-  const [showModal, setShowModal] = useState(false);
-  const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null);
-  const { data: locaisData, isLoading: isLoadingLocais } = useLocais();
-  const locais = locaisData?.data || [];
+  const [statusFilter, setStatusFilter] = useState<'pendente' | 'aprovado' | 'cancelado' | ''>('');
+  const [showForm, setShowForm] = useState(false);
+  const [selectedReserva, setSelectedReserva] = useState<any>(null);
 
+  // Buscar reservas
   const { data: reservasData, isLoading: isLoadingReservas, error, refetch } = useReservas({
     search,
-    // only include status when filtering, omit to fetch all when empty
     ...(statusFilter ? { status: statusFilter } : {})
   });
-  const { data: clientesData, isLoading: isLoadingClientes } = useClientes();
-  const { data: produtosData, isLoading: isLoadingProdutos } = useProdutos();
-  const excluirReservaMutation = useRemoverReserva();
+  
+  // Buscar dados de apoio
+  const { data: clientesData } = useClientes();
+  const { data: locaisData } = useLocais();
 
   const reservas = reservasData?.data || [];
   const clientes = clientesData?.data || [];
-  const produtos = produtosData?.data || [];
-  const isLoading = isLoadingReservas || isLoadingClientes || isLoadingProdutos || isLoadingLocais;
+  const locais = locaisData?.data || [];
 
-  const clientesMap = useMemo(() => {
-    const map = new Map<number, Cliente>();
-    clientes.forEach(cliente => {
-      map.set(cliente.id_cliente, cliente);
-    });
-    return map;
-  }, [clientes]);
+  // Create maps for lookups
+  const clientesMap = new Map(clientes.map(c => [c.id_cliente, c]));
+  const locaisMap = new Map(locais.map(l => [l.id_local, l]));
 
-  const produtosMap = useMemo(() => {
-    const map = new Map<number, Produto>();
-    produtos.forEach(produto => {
-      map.set(produto.id_produto, produto);
-    });
-    return map;
-  }, [produtos]);
-
-  const calcularValorItem = (produto: Produto | undefined, quantidade: number, dataInicio: string, dataFim: string): number => {
-    if (!produto || !produto.valor_locacao) return 0;
-    const inicio = new Date(dataInicio);
-    const fim = new Date(dataFim);
-    const diferenca = fim.getTime() - inicio.getTime();
-    const dias = Math.max(1, Math.ceil(diferenca / (1000 * 60 * 60 * 24)) + 1);
-    return produto.valor_locacao * quantidade * dias;
-  };
-
-  const reservasAgrupadas = useMemo(() => {
-    const grupos = new Map<number, ReservaAgrupada>();
-    reservas.forEach(reserva => {
-      const cliente = clientesMap.get(reserva.id_cliente || 0);
-      const produto = produtosMap.get(reserva.id_produto);
-      if (!grupos.has(reserva.id_reserva)) {
-        grupos.set(reserva.id_reserva, {
-          id_reserva: reserva.id_reserva,
-          id_cliente: reserva.id_cliente || 0,
-          cliente_nome: cliente?.nome || 'Cliente não encontrado',
-          data_inicio: reserva.data_inicio,
-          data_fim: reserva.data_fim,
-          status: reserva.status,
-          itens: [],
-          valor_total: 0,
-          observacoes: reserva.observacoes
-        });
-      }
-      const grupo = grupos.get(reserva.id_reserva)!;
-      const valorItem = calcularValorItem(produto, reserva.quantidade, reserva.data_inicio, reserva.data_fim);
-      grupo.itens.push({
-        id_item_reserva: reserva.id_item_reserva,
-        id_produto: reserva.id_produto,
-        produto_nome: produto?.nome || 'Produto não encontrado',
-        quantidade: reserva.quantidade,
-        valor_unitario: produto?.valor_locacao || 0
-      });
-      grupo.valor_total += valorItem;
-    });
-    return Array.from(grupos.values());
-  }, [reservas, clientesMap, produtosMap]);
-
-  // Ordena por status e data: canceladas por último, datas mais futuras primeiro
-  const reservasOrdenadas = useMemo(() => {
-    return [...reservasAgrupadas].sort((a, b) => {
-      if (a.status === 'cancelada' && b.status !== 'cancelada') return 1;
-      if (b.status === 'cancelada' && a.status !== 'cancelada') return -1;
-      return new Date(b.data_inicio).getTime() - new Date(a.data_inicio).getTime();
-    });
-  }, [reservasAgrupadas]);
-
-  const handleCreateReserva = () => {
+  const handleNewReserva = () => {
     setSelectedReserva(null);
-    setShowModal(true);
+    setShowForm(true);
   };
 
-  const handleEditReserva = (reserva: Reserva) => {
+  const handleEditReserva = (reserva: any) => {
     setSelectedReserva(reserva);
-    setShowModal(true);
+    setShowForm(true);
   };
 
-  const handleDeleteReserva = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja cancelar esta reserva?')) {
-      try {
-        // Atualiza status de cada item para cancelada
-        const grupo = reservasAgrupadas.find(r => r.id_reserva === id);
-        if (grupo) {
-          await Promise.all(
-            grupo.itens.map(item => ReservaService.atualizarStatus(item.id_item_reserva, 'cancelada'))
-          );
-        }
-        refetch();
-      } catch (error) {
-        console.error('Erro ao cancelar reserva:', error);
-        alert('Erro ao cancelar reserva');
-      }
-    }
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
-    setSelectedReserva(null);
-  };
-
-  const handleFormSuccess = () => {
-    setShowModal(false);
+  const handleCloseForm = () => {
+    setShowForm(false);
     setSelectedReserva(null);
     refetch();
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      iniciada: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Orçamento' },
-      ativa: { bg: 'bg-green-100', text: 'text-green-800', label: 'Ativa' },
-      concluída: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Concluída' },
-      cancelada: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelada' }
-    };
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ativa;
+  if (isLoadingReservas) {
     return (
-      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.bg} ${config.text}`}>
-        {config.label}
-      </span>
-    );
-  };
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-red-800 mb-2">Erro ao Carregar Reservas</h2>
-          <p className="text-red-600 mb-4">
-            Ocorreu um erro ao carregar as reservas. Tente novamente.
-          </p>
-          <Button variant="outline">
-            Tentar Novamente
-          </Button>
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <div className="text-lg">Carregando reservas...</div>
       </div>
     );
   }
 
-  const columns: TableColumn<ReservaAgrupada>[] = [
-    {
-      header: 'Cliente',
-      accessor: 'cliente_nome' as keyof ReservaAgrupada,
-      className: 'min-w-[200px]'
-    },
-    {
-      header: 'Itens',
-      accessor: 'itens' as keyof ReservaAgrupada,
-      cell: (reserva: ReservaAgrupada) => (
-        <div className="space-y-2">
-          {reserva.itens.map((item) => (
-            <div key={item.id_item_reserva} className="text-sm border-l-2 border-blue-200 pl-2">
-              <div className="font-medium text-gray-900">{item.produto_nome}</div>
-              <div className="text-gray-500 flex justify-between">
-                <span>Qtd: {item.quantidade}</span>
-                <span>{formatCurrency(item.valor_unitario || 0)}/dia</span>
-              </div>
-            </div>
-          ))}
-          {reserva.itens.length > 1 && (
-            <div className="text-xs text-gray-400 pt-1 border-t">
-              Total de {reserva.itens.length} itens
-            </div>
-          )}
-        </div>
-      ),
-      className: 'min-w-[280px]'
-    },
-    {
-      header: 'Data Início',
-      accessor: (reserva: ReservaAgrupada) => formatDate(reserva.data_inicio),
-      className: 'min-w-[140px]'
-    },
-    {
-      header: 'Data Fim',
-      accessor: (reserva: ReservaAgrupada) => formatDate(reserva.data_fim),
-      className: 'min-w-[140px]'
-    },
-    {
-      header: 'Valor Total',
-      accessor: 'valor_total' as keyof ReservaAgrupada,
-      cell: (reserva: ReservaAgrupada) => (
-        <span className="font-medium text-green-600">
-          {formatCurrency(reserva.valor_total)}
-        </span>
-      ),
-      className: 'min-w-[120px] text-right'
-    },
-    {
-      header: 'Status',
-      accessor: 'status' as keyof ReservaAgrupada,
-      cell: (reserva: ReservaAgrupada) => getStatusBadge(reserva.status),
-      className: 'w-24'
-    },
-    {
-      header: 'Ações',
-      accessor: 'id_reserva' as keyof ReservaAgrupada,
-      cell: (reserva: ReservaAgrupada) => (
-        <div className="flex space-x-1">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              const primeiraReserva = reservas.find(r => r.id_reserva === reserva.id_reserva);
-              if (primeiraReserva) {
-                handleEditReserva(primeiraReserva);
-              }
-            }}
-            className="p-1.5"
-          >
-            ✏️
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDeleteReserva(reserva.id_reserva)}
-            className="p-1.5 text-red-600 hover:text-red-700"
-          >
-            🗑️
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={async () => {
-              try {
-                await imprimirReserva(reserva);
-              } catch (e) {
-                alert('Erro ao imprimir reserva: ' + (e as Error).message);
-              }
-            }}
-            className="p-1.5 text-blue-600 hover:text-blue-700"
-          >
-            🖨️
-          </Button>
-        </div>
-      ),
-      className: 'w-32'
-    }
-  ];
+  if (error) {
+    return (
+      <div className="bg-red-50 p-4 rounded-md">
+        <div className="text-red-800">Erro ao carregar reservas: {error.message}</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reservas</h1>
-          {!isLoading && (
-            <p className="text-sm text-gray-600 mt-1">
-              {reservasAgrupadas.length} reserva(s) encontrada(s) •
-              {reservas.length} item(s) total •
-              Valor total: {formatCurrency(reservasAgrupadas.reduce((sum, r) => sum + r.valor_total, 0))}
-            </p>
-          )}
-        </div>
-        <Button onClick={handleCreateReserva} className="flex items-center space-x-2">
-          ➕
-          <span>Nova Reserva</span>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Reservas</h1>
+        <Button onClick={handleNewReserva}>
+          Nova Reserva
         </Button>
       </div>
 
-      {/* Filtros */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative">
+      {/* Filters */}
+      <div className="flex gap-4">
+        <div className="flex-1">
           <Input
             type="text"
             placeholder="Buscar reservas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
           />
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-            🔍
-          </div>
         </div>
-
         <div>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'ativa' | 'concluída' | 'cancelada' | 'iniciada' | '')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           >
-            <option value="">Todos os Status</option>
-            <option value="iniciada">Orçamentos</option>
-            <option value="ativa">Ativas</option>
-            <option value="concluída">Concluídas</option>
-            <option value="cancelada">Canceladas</option>
+            <option value="">Todos os status</option>
+            <option value="pendente">Pendente</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="cancelado">Cancelado</option>
           </select>
-        </div>
-
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSearch('');
-              setStatusFilter('');
-            }}
-          >
-            Limpar Filtros
-          </Button>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center py-12">
-          <LoadingSpinner />
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <Table
-            data={reservasOrdenadas}
-            columns={columns}
-            emptyMessage="Nenhuma reserva encontrada. Crie sua primeira reserva clicando no botão 'Nova Reserva'."
-          />
+      {/* Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">
+              {selectedReserva ? 'Editar Reserva' : 'Nova Reserva'}
+            </h2>
+            <ReservaForm
+              reserva={selectedReserva}
+              onSuccess={handleCloseForm}
+              onCancel={handleCloseForm}
+            />
+          </div>
         </div>
       )}
 
-      {showModal && (
-        <Modal isOpen={showModal} onClose={handleModalClose} size="xl">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              {selectedReserva ? 'Editar Detalhes da Reserva' : 'Nova Reserva'}
-            </h2>
-            <OrcamentoForm
-              orcamento={selectedReserva as any}
-              onSuccess={handleFormSuccess}
-              onCancel={handleModalClose}
-              locais={locais}
-              atualizarLocais={() => refetch()}
-            />
-          </div>
-        </Modal>
-      )}
+      {/* Reservas List */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b">
+          <h3 className="text-lg font-medium">Lista de Reservas</h3>
+        </div>
+        <div className="divide-y divide-gray-200">
+          {reservas.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <div className="text-gray-500">Nenhuma reserva encontrada</div>
+            </div>
+          ) : (
+            reservas.map((reserva) => {
+              const cliente = clientesMap.get(reserva.id_cliente || 0);
+              const local = locaisMap.get(reserva.id_local || 0);
+              
+              return (
+                <div key={reserva.id_reserva} className="px-6 py-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        Reserva #{reserva.id_reserva}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Cliente: {cliente?.nome || 'Cliente não encontrado'}
+                      </div>
+                      {local && (
+                        <div className="text-sm text-gray-500">
+                          Local: {local.nome}
+                        </div>
+                      )}
+                      <div className="text-sm text-gray-500">
+                        Data Evento: {reserva.data_evento ? new Date(reserva.data_evento).toLocaleDateString() : 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Data Retirada: {reserva.data_retirada ? new Date(reserva.data_retirada).toLocaleDateString() : 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Data Devolução: {reserva.data_devolucao ? new Date(reserva.data_devolucao).toLocaleDateString() : 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Valor: R$ {reserva.valor_total?.toFixed(2) || '0.00'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Status: <span className={`px-2 py-1 rounded-full text-xs ${
+                          reserva.status === 'pendente' ? 'bg-yellow-100 text-yellow-800' :
+                          reserva.status === 'aprovado' ? 'bg-green-100 text-green-800' :
+                          reserva.status === 'cancelado' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {reserva.status || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditReserva(reserva)}
+                      >
+                        Editar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 };

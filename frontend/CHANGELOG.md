@@ -1,4 +1,4 @@
-# Sistema ERP Cunha Festas - Frontend Atualizado
+# Sistema cunha Cunha Festas - Frontend Atualizado
 
 ## ✅ Refatoração Realizada
 
@@ -6,9 +6,9 @@ O frontend foi completamente refatorado e alinhado ao **schema real do banco de 
 
 ## 🗄️ Schema do Banco de Dados
 
-O sistema utiliza o schema `erp` no PostgreSQL com as seguintes tabelas:
+O sistema utiliza o schema `cunha` no PostgreSQL com as seguintes tabelas:
 
-### `erp.produtos`
+### `cunha.produtos`
 - `id_produto` (serial, PK)
 - `nome` (text, NOT NULL)
 - `quantidade_total` (integer, NOT NULL)
@@ -16,21 +16,21 @@ O sistema utiliza o schema `erp` no PostgreSQL com as seguintes tabelas:
 - `valor_danificacao` (numeric, nullable)
 - `tempo_limpeza` (integer, nullable)
 
-### `erp.clientes`
+### `cunha.clientes`
 - `id_cliente` (serial, PK)
 - `nome` (text, NOT NULL)
 - `telefone` (text, nullable)
 - `email` (text, nullable)
 - `cpf_cnpj` (text, nullable)
 
-### `erp.locais`
+### `cunha.locais`
 - `id_local` (serial, PK)
 - `descricao` (text, NOT NULL)
 - `endereco` (text, nullable)
 - `capacidade` (integer, nullable)
 - `tipo` (text, nullable)
 
-### `erp.reservas`
+### `cunha.reservas`
 - `id_item_reserva` (integer, PK)
 - `id_reserva` (serial)
 - `id_cliente` (integer, nullable, FK)
@@ -41,7 +41,7 @@ O sistema utiliza o schema `erp` no PostgreSQL com as seguintes tabelas:
 - `id_produto` (integer, NOT NULL, FK)
 - `quantidade` (integer, NOT NULL)
 
-### `erp.movimentos`
+### `cunha.movimentos`
 - `id_evento` (integer, PK)
 - `id_produto` (integer, NOT NULL, FK)
 - `data_evento` (timestamp, NOT NULL, default: CURRENT_TIMESTAMP)
@@ -124,7 +124,7 @@ Todos os serviços estão preparados para integração com workflows n8n:
 
 ```sql
 -- Exemplo de query SQL gerada no n8n
-INSERT INTO erp.produtos (nome, quantidade_total, valor_locacao, valor_danificacao, tempo_limpeza)
+INSERT INTO cunha.produtos (nome, quantidade_total, valor_locacao, valor_danificacao, tempo_limpeza)
 VALUES ('${nome}', ${quantidade_total}, ${valor_locacao}, ${valor_danificacao}, ${tempo_limpeza})
 RETURNING *;
 ```
@@ -173,7 +173,7 @@ npm test
 
 ## 🎯 Compatibilidade
 
-- ✅ Schema PostgreSQL `erp` real
+- ✅ Schema PostgreSQL `cunha` real
 - ✅ Tipos TypeScript alinhados
 - ✅ Payloads prontos para n8n
 - ✅ Queries SQL compatíveis
