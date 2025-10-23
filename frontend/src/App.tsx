@@ -13,11 +13,11 @@ import Layout from './components/Layout';
 
 // Pages
 import HomePage from './pages/HomePage';
-import NandaPage from './pages/NandaPage';
 import ProductsPage from './pages/ProductsPage';
 import ClientsPage from './pages/ClientsPage';
 // import BudgetsPage from './pages/OrcamentosPageNew';
 import ReservasPage from './pages/ReservasPage';
+import ReservaEditPage from './pages/ReservaEditPage';
 import LocaisPage from './pages/LocaisPage';
 import MovimentosPage from './pages/MovimentosPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -71,10 +71,10 @@ function App() {
                 <Route path='/orcamentos/marketplace' element={<ProtectedRoute><OrcamentosPageMarketplace /></ProtectedRoute>} />
                 {/* <Route path='/orcamentos/editar/:id' element={<ProtectedRoute><EditarOrcamentoPage /></ProtectedRoute>} /> */}
                 <Route path="/reservas" element={<ProtectedRoute><ReservasPage /></ProtectedRoute>} />
+                <Route path="/reservas/:id/edit" element={<ProtectedRoute><ReservaEditPage /></ProtectedRoute>} />
                 <Route path="/locais" element={<ProtectedRoute><LocaisPage /></ProtectedRoute>} />
                 <Route path="/movimentos" element={<ProtectedRoute><MovimentosPage /></ProtectedRoute>} />
                 {/* <Route path="/relatorios" element={<ProtectedRoute><RelatoriosPage /></ProtectedRoute>} /> */}
-                <Route path="/nanda" element={<ProtectedRoute><NandaPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>

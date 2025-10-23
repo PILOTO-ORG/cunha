@@ -25,7 +25,6 @@
 - [x] Componentes UI básicos (Button, Input, Modal, Table, etc.)
 - [x] Layout principal com navegação
 - [x] HomePage com dashboard visual
-- [x] Página da assistente IA (Nanda)
 - [x] Documentação completa de todas as rotas da API
 - [x] JSON de exemplos de interação da IA
 

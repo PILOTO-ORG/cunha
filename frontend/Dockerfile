@@ -12,5 +12,8 @@ RUN npm install
 # Copy app files
 COPY . .
 
+# Expose port 80
+EXPOSE 80
+
 # Start development server
 CMD ["npm", "start"]

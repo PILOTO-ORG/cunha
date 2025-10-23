@@ -1,8 +1,8 @@
-import { Produto, Cliente, Local } from './api';
+import { Produto, Cliente, Local, OrcamentoStatus } from './api';
 
-// Status types
-export type StatusOrcamento = 'pendente' | 'aprovado' | 'cancelado';
-export type StatusGeral = StatusOrcamento;
+// Status types - Agora importados do schema centralizado
+export type StatusOrcamento = OrcamentoStatus;
+export type StatusGeral = OrcamentoStatus;
 
 export interface ItemOrcamentoAgrupado {
   id_item_reserva: number;

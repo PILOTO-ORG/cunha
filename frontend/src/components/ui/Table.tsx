@@ -50,41 +50,47 @@ function Table<T extends Record<string, any>>({
 
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            {columns.map((column, index) => (
-              <th
-                key={index}
-                className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.className || ''}`}
-              >
-                {column.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {data.map((item, rowIndex) => (
-            <tr 
-              key={rowIndex} 
-              className={`${rowClassName} ${onRowClick ? 'cursor-pointer' : ''}`}
-              onClick={() => onRowClick?.(item)}
-            >
-              {columns.map((column, colIndex) => {
-                const cellContent = typeof column.accessor === 'function'
-                  ? column.accessor(item)
-                  : item[column.accessor as keyof T];
-                  
-                return (
-                  <td key={colIndex} className={`px-6 py-4 whitespace-nowrap text-sm ${column.className || ''}`}>
-                    {column.cell ? column.cell(item) : cellContent}
-                  </td>
-                );
-              })}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {columns.map((column, index) => (
+                <th
+                  key={index}
+                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.className || ''}`}
+                >
+                  {column.header}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {data.map((item, rowIndex) => (
+              <tr
+                key={rowIndex}
+                className={`${rowClassName} ${onRowClick ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+                onClick={() => onRowClick?.(item)}
+              >
+                {columns.map((column, colIndex) => {
+                  const cellContent = typeof column.accessor === 'function'
+                    ? column.accessor(item)
+                    : item[column.accessor as keyof T];
+
+                  return (
+                    <td key={colIndex} className={`px-6 py-4 text-sm ${column.className || ''}`}>
+                      {column.cell ? column.cell(item) : (
+                        <div className="max-w-xs truncate" title={String(cellContent || '')}>
+                          {cellContent}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

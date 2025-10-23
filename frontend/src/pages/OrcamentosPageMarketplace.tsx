@@ -42,6 +42,16 @@ const OrcamentosPageMarketplace: React.FC = () => {
     items: []
   });
 
+  // Ler parâmetros da URL para definir datas padrão
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inicioParam = urlParams.get('dataInicio');
+    const fimParam = urlParams.get('dataFim');
+    
+    if (inicioParam) setDataInicio(inicioParam);
+    if (fimParam) setDataFim(fimParam);
+  }, []);
+
   // Calcular dias automaticamente quando as datas mudam
   useEffect(() => {
     if (dataInicio && dataFim) {
@@ -262,7 +272,7 @@ const OrcamentosPageMarketplace: React.FC = () => {
               <div className="lg:col-span-3">
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   <CalendarIcon className="w-3.5 h-3.5 inline mr-1" />
-                  Data de Retirada *
+                  Início do Evento *
                 </label>
                 <Input
                   type="date"
@@ -275,7 +285,7 @@ const OrcamentosPageMarketplace: React.FC = () => {
               <div className="lg:col-span-3">
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   <CalendarIcon className="w-3.5 h-3.5 inline mr-1" />
-                  Data de Devolução *
+                  Fim do Evento *
                 </label>
                 <Input
                   type="date"
@@ -633,6 +643,8 @@ const OrcamentosPageMarketplace: React.FC = () => {
                 <div className="w-full max-w-7xl my-4 sm:my-6 lg:my-8">
                   <OrcamentoCheckoutForm
                     items={cart.items}
+                    eventoInicio={dataInicio}
+                    eventoFim={dataFim}
                     onSuccess={() => {
                       setShowCheckout(false);
                       clearCart();

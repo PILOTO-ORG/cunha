@@ -8,6 +8,7 @@ import type {
   AtualizarOrcamentoRequest,
   CriarReservaRequest,
   ReservaStatus,
+  OrcamentoStatus,
   CriarOrcamentoComItensRequest
 } from '../types/api';
 import { reservaSchema } from '../constants/reservaSchema';
@@ -28,14 +29,23 @@ function buildQueryString(filtros?: ReservaFilter | OrcamentoFilter): string {
   return queryString ? `?${queryString}` : '';
 }
 
-function normalizeStatus(status?: string | null): ReservaStatus | undefined {
+function normalizeOrcamentoStatus(status?: string | null): OrcamentoStatus | undefined {
   if (!status) {
     return undefined;
   }
 
   const normalized = status.toLowerCase();
-  return (reservaSchema.status as readonly string[]).includes(normalized)
-    ? (normalized as ReservaStatus)
+  // Map old status to new orcamento status
+  const statusMap: Record<string, OrcamentoStatus> = {
+    'pendente': 'Criado',
+    'orcamento': 'Criado',
+    'aprovado': 'Aprovado',
+    'cancelada': 'Cancelado',
+    'cancelado': 'Cancelado'
+  };
+
+  return statusMap[normalized] || (reservaSchema.orcamento.status as readonly string[]).includes(normalized)
+    ? (normalized as OrcamentoStatus)
     : undefined;
 }
 
@@ -81,8 +91,8 @@ export class OrcamentoService {
     return response.data;
   }
 
-  static async criarOrcamento(orcamento: CriarOrcamentoComItensRequest): Promise<Reserva> {
-    const status = normalizeStatus(orcamento.status) ?? reservaSchema.defaults.orcamentoStatus;
+  static async criarOrcamento(orcamento: any): Promise<Reserva> {
+    const status = normalizeOrcamentoStatus(orcamento.status) ?? reservaSchema.orcamento.defaults.status;
     const payload = {
       ...orcamento,
       status,
@@ -94,7 +104,12 @@ export class OrcamentoService {
   }
 
   static async atualizarOrcamento(id: number, dados: AtualizarOrcamentoRequest): Promise<Reserva> {
-    const response = await apiClient.put<Reserva>(`/orcamentos/${id}`, dados);
+    const payload = {
+      ...dados,
+      status: dados.status ? normalizeOrcamentoStatus(dados.status) : undefined
+    };
+
+    const response = await apiClient.put<Reserva>(`/orcamentos/${id}`, payload);
     return response.data;
   }
 
@@ -103,7 +118,7 @@ export class OrcamentoService {
   }
 
   static async aprovarOrcamento(id: number): Promise<Reserva> {
-    const response = await apiClient.post<{ success: boolean; message: string; reserva: Reserva }>(`/orcamentos/${id}/aprovar`);
+    const response = await apiClient.put<{ success: boolean; message: string; reserva: Reserva }>(`/orcamentos/${id}/aprovar`);
     // A API retorna { success: true, message: '...', reserva: ... }
     // O apiClient encapsula isso em { success: true, data: ... }
     return response.data.reserva;
@@ -151,7 +166,7 @@ export class OrcamentoService {
   }
 
   static async atualizarReserva(id: number, dados: AtualizarReservaRequest): Promise<Reserva> {
-    const status = normalizeStatus(dados.status);
+    const status = normalizeOrcamentoStatus(dados.status);
     const payload = {
       ...dados,
       ...(status && { status })
@@ -164,6 +179,16 @@ export class OrcamentoService {
   static async cancelarReserva(id: number, motivo?: string): Promise<Reserva> {
     const response = await apiClient.post<Reserva>(`/reservas/${id}/cancelar`, { motivo });
     return response.data;
+  }
+
+  static async cancelarOrcamento(id: number): Promise<any> {
+    try {
+      const response = await apiClient.put(`/orcamentos/${id}/cancelar`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao cancelar orçamento:', error);
+      throw error;
+    }
   }
 
   static async finalizarReserva(id: number, observacoes?: string): Promise<Reserva> {

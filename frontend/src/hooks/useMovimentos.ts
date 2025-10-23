@@ -55,6 +55,23 @@ export function useCriarMovimento() {
 }
 
 /**
+ * Hook para atualizar movimento
+ */
+export function useAtualizarMovimento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, dados }: { id: number; dados: Partial<CriarMovimentoRequest> }) => 
+      MovimentoService.atualizarMovimento(id, dados),
+    onSuccess: () => {
+      // Invalidar listas de movimentos e detalhes
+      queryClient.invalidateQueries({ queryKey: MOVIMENTO_QUERY_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: MOVIMENTO_QUERY_KEYS.details() });
+    },
+  });
+}
+
+/**
  * Hook para buscar movimentos por produto
  */
 export function useMovimentosPorProduto(id_produto: number, enabled: boolean = true) {

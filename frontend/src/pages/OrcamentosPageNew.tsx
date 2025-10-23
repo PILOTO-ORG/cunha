@@ -64,7 +64,7 @@ const OrcamentosPageNew: React.FC = () => {
 
     // Filtro de data
     if (dateFilter !== 'todos') {
-      const dataEvento = new Date(reserva.data_evento);
+      const dataEvento = new Date(reserva.evento_inicio);
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
 
@@ -90,9 +90,9 @@ const OrcamentosPageNew: React.FC = () => {
   const stats = {
     total: reservas.length,
     valorTotal: reservas.reduce((sum, r) => sum + Number(r.valor_total || 0), 0),
-    pendentes: reservas.filter(r => r.status === 'pendente'),
-    aprovadosArr: reservas.filter(r => r.status === 'aprovado'),
-    canceladosArr: reservas.filter(r => r.status === 'cancelado'),
+    pendentes: reservas.filter((r: any) => r.status === 'Criado'),
+    aprovadosArr: reservas.filter((r: any) => r.status === 'Aprovado'),
+    canceladosArr: reservas.filter((r: any) => r.status === 'Cancelado'),
   };
   const statsDisplay = {
     total: stats.total,
@@ -138,8 +138,8 @@ const OrcamentosPageNew: React.FC = () => {
   };
 
   const getStatusConfig = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'aprovado':
+    switch (status) {
+      case 'Aprovado':
         return {
           label: 'Aprovado',
           icon: CheckCircleIcon,
@@ -147,15 +147,15 @@ const OrcamentosPageNew: React.FC = () => {
           textColor: 'text-green-800',
           borderColor: 'border-green-200'
         };
-      case 'pendente':
+      case 'Criado':
         return {
-          label: 'Pendente',
+          label: 'Criado',
           icon: ClockIcon,
           bgColor: 'bg-yellow-100',
           textColor: 'text-yellow-800',
           borderColor: 'border-yellow-200'
         };
-      case 'cancelado':
+      case 'Cancelado':
         return {
           label: 'Cancelado',
           icon: XCircleIcon,
@@ -238,7 +238,7 @@ const OrcamentosPageNew: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-yellow-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Pendentes</p>
+              <p className="text-sm text-gray-600">Criados</p>
               <p className="text-2xl font-bold text-gray-900">{statsDisplay.pendentes} = 
                 R$ {statsDisplay.pendentesValor.toFixed(2).replace('.', ',')}
               </p>
@@ -313,9 +313,9 @@ const OrcamentosPageNew: React.FC = () => {
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
               <option value="todos">Todos os Status</option>
-              <option value="aprovado">Aprovados</option>
-              <option value="pendente">Pendentes</option>
-              <option value="cancelado">Cancelados</option>
+              <option value="Aprovado">Aprovados</option>
+              <option value="Criado">Criados</option>
+              <option value="Cancelado">Cancelados</option>
               </select>
             </div>
 
@@ -410,8 +410,8 @@ const OrcamentosPageNew: React.FC = () => {
                             <CalendarIcon className="w-4 h-4 mr-2 text-gray-400" />
                             <span className="font-medium">Evento:</span>
                             <span className="ml-1">
-                              {reserva.data_evento
-                                ? new Date(reserva.data_evento).toLocaleDateString('pt-BR')
+                              {reserva.evento_inicio
+                                ? new Date(reserva.evento_inicio).toLocaleDateString('pt-BR')
                                 : 'N/A'}
                             </span>
                           </div>
@@ -456,13 +456,13 @@ const OrcamentosPageNew: React.FC = () => {
                           Editar
                         </Button>
 
-                        {reserva.status === 'pendente' && (
+                        {(reserva as any).status === 'Criado' && (
                           <>
                             <Button
                               size="sm"
                               onClick={async () => {
                                 try {
-                                  await ReservaService.aprovarOrcamento(reserva.id_reserva);
+                                  await ReservaService.aprovarOrcamento((reserva as any).id_orcamento || reserva.id_reserva);
                                   refetch();
                                 } catch (error) {
                                   alert('Erro ao aprovar orçamento.');
@@ -478,7 +478,7 @@ const OrcamentosPageNew: React.FC = () => {
                               onClick={async () => {
                                 if (!window.confirm('Tem certeza que deseja cancelar este orçamento?')) return;
                                 try {
-                                  await ReservaService.cancelarOrcamento(reserva.id_reserva);
+                                  await ReservaService.cancelarOrcamento((reserva as any).id_orcamento || reserva.id_reserva);
                                   refetch();
                                 } catch (error) {
                                   alert('Erro ao cancelar orçamento.');
@@ -645,7 +645,7 @@ const OrcamentosPageNew: React.FC = () => {
                       ...novoOrcamentoData,
                       id_cliente: selectedOrcamento.id_cliente,
                       id_local: selectedOrcamento.id_local,
-                      data_evento: selectedOrcamento.data_evento,
+                      data_evento: selectedOrcamento.evento_inicio,
                       data_retirada: selectedOrcamento.data_retirada,
                       data_devolucao: selectedOrcamento.data_devolucao,
                       observacoes: selectedOrcamento.observacoes,

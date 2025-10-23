@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useReservas } from '../hooks/useReservas';
+import { useOrcamentos } from '../hooks/useOrcamentosReservas';
 import { useClientes } from '../hooks/useClientes';
 import { useLocais } from '../hooks/useLocais';
 import { useProdutos } from '../hooks/useProdutos';
@@ -15,7 +15,8 @@ import {
   XCircleIcon,
   DocumentArrowDownIcon,
   CalendarIcon,
-  AdjustmentsHorizontalIcon
+  AdjustmentsHorizontalIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import ReservaService from '../services/reservaService';
 
@@ -33,15 +34,15 @@ const OrcamentosPage: React.FC = () => {
   const [selectedOrcamento, setSelectedOrcamento] = useState<any>(null);
   const [expandedOrcamentos, setExpandedOrcamentos] = useState<Set<number>>(new Set());
   const [itensOrcamentos, setItensOrcamentos] = useState<Map<number, any[]>>(new Map());
-  const [statusFilter, setStatusFilter] = useState<string>('pendente'); // Filtro padrão: pendente
+  const [statusFilter, setStatusFilter] = useState<string>('Criado'); // Filtro padrão: Criado
   const [loadingActions, setLoadingActions] = useState<Map<number, string>>(new Map());
   
   // Novos filtros
   const [periodoFilter, setPeriodoFilter] = useState<PeriodoFilter>({ tipo: 'mes' });
   const [showFilters, setShowFilters] = useState(false);
 
-  // Buscar reservas
-  const { data: orcamentosData, isLoading: isLoadingReservas, error, refetch } = useReservas({ 
+  // Buscar orçamentos
+  const { data: orcamentosData, isLoading: isLoadingReservas, error, refetch } = useOrcamentos({ 
     search
   });
   
@@ -53,7 +54,7 @@ const OrcamentosPage: React.FC = () => {
   // Todos os orçamentos com filtro de período aplicado
   const todosOrcamentosComPeriodo = useMemo(() => {
     const orcamentos = (orcamentosData?.data || []).filter((r: any) => 
-      ['pendente', 'aprovado', 'cancelado'].includes(r.status)
+      ['Criado', 'Aprovado', 'Cancelado'].includes(r.status)
     );
     
     // Função para filtrar por período (dentro do useMemo)
@@ -106,9 +107,9 @@ const OrcamentosPage: React.FC = () => {
   const reservas = statusFilter === 'todos' 
     ? todosOrcamentosComPeriodo
     : todosOrcamentosComPeriodo.filter((r: any) => {
-        if (statusFilter === 'pendente') return r.status === 'pendente' || r.status === 'orcamento';
-        if (statusFilter === 'aprovado') return r.status === 'aprovado';
-        if (statusFilter === 'reprovado' || statusFilter === 'cancelado') return r.status === 'cancelada';
+        if (statusFilter === 'Criado') return r.status === 'Criado' || r.status === 'orcamento';
+        if (statusFilter === 'Aprovado') return r.status === 'Aprovado';
+        if (statusFilter === 'Cancelado') return r.status === 'Cancelado';
         return false;
       });
 
@@ -119,16 +120,16 @@ const OrcamentosPage: React.FC = () => {
       valor: todosOrcamentosComPeriodo.reduce((sum, r) => sum + (Number(r.valor_total) || 0), 0)
     },
     pendentes: {
-      count: todosOrcamentosComPeriodo.filter(r => r.status === 'pendente' || r.status === 'orcamento').length,
-      valor: todosOrcamentosComPeriodo.filter(r => r.status === 'pendente' || r.status === 'orcamento').reduce((sum, r) => sum + (Number(r.valor_total) || 0), 0)
+      count: todosOrcamentosComPeriodo.filter(r => r.status === 'Criado' || r.status === 'orcamento').length,
+      valor: todosOrcamentosComPeriodo.filter(r => r.status === 'Criado' || r.status === 'orcamento').reduce((sum, r) => sum + (Number(r.valor_total) || 0), 0)
     },
     aprovados: {
-      count: todosOrcamentosComPeriodo.filter(r => r.status === 'aprovado').length,
-      valor: todosOrcamentosComPeriodo.filter(r => r.status === 'aprovado').reduce((sum, r) => sum + (Number(r.valor_total) || 0), 0)
+      count: todosOrcamentosComPeriodo.filter(r => r.status === 'Aprovado').length,
+      valor: todosOrcamentosComPeriodo.filter(r => r.status === 'Aprovado').reduce((sum, r) => sum + (Number(r.valor_total) || 0), 0)
     },
-    reprovados: {
-      count: todosOrcamentosComPeriodo.filter(r => r.status === 'cancelada').length,
-      valor: todosOrcamentosComPeriodo.filter(r => r.status === 'cancelada').reduce((sum, r) => sum + (Number(r.valor_total) || 0), 0)
+    cancelados: {
+      count: todosOrcamentosComPeriodo.filter(r => r.status === 'Cancelado').length,
+      valor: todosOrcamentosComPeriodo.filter(r => r.status === 'Cancelado').reduce((sum, r) => sum + (Number(r.valor_total) || 0), 0)
     }
   };
 
@@ -237,6 +238,30 @@ const OrcamentosPage: React.FC = () => {
     refetch();
   };
 
+  // Função para calcular dias desde criação e determinar cor
+  const getDiasDesdeCriacao = (dataCriacao: string | Date) => {
+    console.log('getDiasDesdeCriacao chamada com:', dataCriacao);
+    if (!dataCriacao) return { dias: 0, cor: 'text-gray-500' };
+    
+    const hoje = new Date();
+    const data = new Date(dataCriacao);
+    const diffTime = Math.abs(hoje.getTime() - data.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log('Data criação:', data, 'Hoje:', hoje, 'Diferença dias:', diffDays);
+    
+    let cor = 'text-gray-500';
+    if (diffDays <= 1) {
+      cor = 'text-green-600';
+    } else if (diffDays <= 3) {
+      cor = 'text-yellow-600';
+    } else {
+      cor = 'text-red-600';
+    }
+    
+    return { dias: diffDays, cor };
+  };
+
   if (isLoadingReservas) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -288,16 +313,16 @@ const OrcamentosPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Pendentes */}
+        {/* Criados */}
         <div 
           className={`bg-white p-6 rounded-lg shadow border-l-4 cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === 'pendente' ? 'border-l-yellow-600 bg-yellow-50' : 'border-l-gray-300'
+            statusFilter === 'Criado' ? 'border-l-yellow-600 bg-yellow-50' : 'border-l-gray-300'
           }`}
-          onClick={() => setStatusFilter('pendente')}
+          onClick={() => setStatusFilter('Criado')}
         >
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Pendentes</p>
+              <p className="text-sm font-medium text-gray-600">Criados</p>
               <p className="text-2xl font-bold text-gray-900">{stats.pendentes.count}</p>
               <p className="text-sm font-medium text-yellow-600">
                 R$ {stats.pendentes.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -314,9 +339,9 @@ const OrcamentosPage: React.FC = () => {
         {/* Aprovados */}
         <div 
           className={`bg-white p-6 rounded-lg shadow border-l-4 cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === 'aprovado' ? 'border-l-green-600 bg-green-50' : 'border-l-gray-300'
+            statusFilter === 'Aprovado' ? 'border-l-green-600 bg-green-50' : 'border-l-gray-300'
           }`}
-          onClick={() => setStatusFilter('aprovado')}
+          onClick={() => setStatusFilter('Aprovado')}
         >
           <div className="flex items-center">
             <div className="flex-1">
@@ -332,19 +357,19 @@ const OrcamentosPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Reprovados */}
+        {/* Cancelados */}
         <div 
           className={`bg-white p-6 rounded-lg shadow border-l-4 cursor-pointer transition-all hover:shadow-md ${
-            statusFilter === 'reprovado' ? 'border-l-red-600 bg-red-50' : 'border-l-gray-300'
+            statusFilter === 'Cancelado' ? 'border-l-red-600 bg-red-50' : 'border-l-gray-300'
           }`}
-          onClick={() => setStatusFilter('reprovado')}
+          onClick={() => setStatusFilter('Cancelado')}
         >
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Reprovados</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.reprovados.count}</p>
+              <p className="text-sm font-medium text-gray-600">Cancelados</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.cancelados.count}</p>
               <p className="text-sm font-medium text-red-600">
-                R$ {stats.reprovados.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                R$ {stats.cancelados.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -383,9 +408,9 @@ const OrcamentosPage: React.FC = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="todos">Todos</option>
-                <option value="pendente">Pendente</option>
-                <option value="aprovado">Aprovado</option>
-                <option value="reprovado">Reprovado</option>
+                <option value="Criado">Criado</option>
+                <option value="Aprovado">Aprovado</option>
+                <option value="Cancelado">Cancelado</option>
               </select>
             </div>
 
@@ -491,9 +516,9 @@ const OrcamentosPage: React.FC = () => {
           <h3 className="text-lg font-medium">
             Lista de Orçamentos - {
               statusFilter === 'todos' ? 'Todos' :
-              statusFilter === 'pendente' ? 'Pendentes' :
-              statusFilter === 'aprovado' ? 'Aprovados' :
-              statusFilter === 'reprovado' ? 'Reprovados' : 'Filtro'
+              statusFilter === 'Criado' ? 'Criados' :
+              statusFilter === 'Aprovado' ? 'Aprovados' :
+              statusFilter === 'Cancelado' ? 'Cancelados' : 'Filtro'
             } ({reservas.length})
           </h3>
           <p className="text-sm text-gray-500 mt-1">
@@ -532,13 +557,23 @@ const OrcamentosPage: React.FC = () => {
                             Reserva #{reserva.id_reserva}
                           </div>
                           <span className={`px-2 py-1 text-xs rounded-full ${
-                            reserva.status === 'confirmada' ? 'bg-green-100 text-green-800' :
-                            reserva.status === 'pendente' ? 'bg-yellow-100 text-yellow-800' :
-                            reserva.status === 'cancelada' ? 'bg-red-100 text-red-800' :
+                            reserva.status === 'Criado' ? 'bg-yellow-100 text-yellow-800' :
+                            reserva.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
+                            reserva.status === 'Cancelado' ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
                             {reserva.status}
                           </span>
+                          {(() => {
+                            const { dias, cor } = getDiasDesdeCriacao(reserva.data_criacao || reserva.data_evento);
+                            console.log('Reserva', reserva.id_reserva, 'data_criacao:', reserva.data_criacao, 'data_evento:', reserva.data_evento, 'dias:', dias, 'cor:', cor);
+                            return (
+                              <span className={`flex items-center text-xs ${cor}`}>
+                                <ClockIcon className="w-3 h-3 mr-1" />
+                                {dias} {dias === 1 ? 'dia' : 'dias'}
+                              </span>
+                            );
+                          })()}
                           {itens.length > 0 && (
                             <span className="flex items-center text-xs text-gray-500">
                               <ShoppingBagIcon className="w-4 h-4 mr-1" />
@@ -563,11 +598,11 @@ const OrcamentosPage: React.FC = () => {
                       </div>
                       <div className="flex space-x-2">
                         {/* Botões de ação primários para orçamentos pendentes */}
-                        {(reserva.status === 'orcamento' || reserva.status === 'pendente') && (
+                        {(reserva.status === 'orcamento' || reserva.status === 'Criado') && (
                           <>
                             <Button
                               size="sm"
-                              onClick={() => handleAprovarOrcamento(reserva.id_reserva)}
+                              onClick={() => handleAprovarOrcamento((reserva as any).id_orcamento || reserva.id_reserva)}
                               disabled={loadingActions.has(reserva.id_reserva)}
                               className="bg-green-600 hover:bg-green-700 text-white border-green-600"
                             >
@@ -577,7 +612,7 @@ const OrcamentosPage: React.FC = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleCancelarOrcamento(reserva.id_reserva)}
+                              onClick={() => handleCancelarOrcamento((reserva as any).id_orcamento || reserva.id_reserva)}
                               disabled={loadingActions.has(reserva.id_reserva)}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
                             >
@@ -591,7 +626,7 @@ const OrcamentosPage: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/orcamentos/editar/${reserva.id_reserva}`)}
+                          onClick={() => navigate(`/orcamentos/${reserva.id_orcamento}/edit`)}
                           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         >
                           <PencilIcon className="w-4 h-4 mr-1" />

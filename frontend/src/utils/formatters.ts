@@ -69,3 +69,18 @@ export const isValidDate = (date: string | null | undefined): boolean => {
   const parsedDate = new Date(date);
   return !isNaN(parsedDate.getTime());
 };
+
+export const formatDateTimeForInput = (date: string | null | undefined): string => {
+  if (!date || date === '') return '';
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return '';
+  
+  // Para datetime-local, precisamos do formato YYYY-MM-DDTHH:mm
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+  const day = String(parsedDate.getDate()).padStart(2, '0');
+  const hours = String(parsedDate.getHours()).padStart(2, '0');
+  const minutes = String(parsedDate.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};

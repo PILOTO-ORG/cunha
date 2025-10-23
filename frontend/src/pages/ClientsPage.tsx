@@ -107,9 +107,13 @@ const ClientsPage: React.FC = () => {
               {client.nome.charAt(0).toUpperCase()}
             </span>
           </div>
-          <div className="ml-4">
-            <div className="text-sm font-medium text-gray-900">{client.nome}</div>
-            <div className="text-sm text-gray-500">{client.email || 'Sem email'}</div>
+          <div className="ml-4 min-w-0 flex-1">
+            <div className="text-sm font-medium text-gray-900 truncate" title={client.nome}>
+              {client.nome}
+            </div>
+            <div className="text-sm text-gray-500 truncate" title={client.email || 'Sem email'}>
+              {client.email || 'Sem email'}
+            </div>
           </div>
         </div>
       ),
@@ -122,6 +126,7 @@ const ClientsPage: React.FC = () => {
           {client.telefone ? formatPhoneNumber(client.telefone) : '-'}
         </span>
       ),
+      className: 'hidden sm:table-cell',
     },
     {
       header: 'CPF/CNPJ',
@@ -129,6 +134,7 @@ const ClientsPage: React.FC = () => {
       cell: (client: Cliente) => (
         <span className="text-sm text-gray-900">{client.cpf_cnpj || '-'}</span>
       ),
+      className: 'hidden md:table-cell',
     },
     {
       header: 'Endereço',
@@ -138,6 +144,7 @@ const ClientsPage: React.FC = () => {
           {client.cidade || client.endereco_completo || client.endereco || '-'}
         </span>
       ),
+      className: 'hidden lg:table-cell',
     },
     {
       header: 'Ações',
@@ -157,22 +164,23 @@ const ClientsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Gerencie seus clientes e informações de contato
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Gerencie seus clientes e informações de contato
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={() => handleOpenModal(null)}
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Novo Cliente
+          </Button>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => handleOpenModal(null)}
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Novo Cliente
-        </Button>
-      </div>
 
       <div className="bg-white shadow rounded-lg">
         <div className="p-4 border-b border-gray-200">
@@ -390,6 +398,7 @@ const ClientsPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+      </div>
     </div>
   );
 };

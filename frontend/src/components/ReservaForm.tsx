@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import type { Reserva, CriarReservaRequest, AtualizarReservaRequest } from '../types/api';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Textarea from './ui/Textarea';
+import React, { useEffect, useState } from 'react';
+import ReservaCheckoutForm from './ReservaCheckoutForm';
 import ReservaService from '../services/reservaService';
+import ProdutoService from '../services/produtoService';
+import type { Reserva, Produto, CriarReservaRequest, AtualizarReservaRequest } from '../types/api';
 
 interface ReservaFormProps {
   reserva?: Reserva;
@@ -11,222 +10,84 @@ interface ReservaFormProps {
   onCancel: () => void;
 }
 
-// Type for the form data 
-type FormData = {
-  id_cliente: number;
-  id_local?: number;
-  data_evento: string;
-  data_retirada: string;
-  data_devolucao: string;
-  valor_total: string; // string no form, será convertido para number
-  observacoes: string;
-};
-
 const ReservaForm: React.FC<ReservaFormProps> = ({ reserva, onSuccess, onCancel }) => {
-  // Initialize form data with default values
-  const initialFormData: FormData = {
-    id_cliente: 0,
-    id_local: undefined,
-    data_evento: '',
-    data_retirada: '',
-    data_devolucao: '',
-    valor_total: '',
-    observacoes: ''
-  };
+  const [items, setItems] = useState<Array<{ produto: Produto; quantidade: number }>>([]);
 
-  const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Update form data when reserva prop changes
   useEffect(() => {
-    if (reserva) {
-      setFormData({
-        id_cliente: reserva.id_cliente || 0,
-        id_local: reserva.id_local || undefined,
-        data_evento: reserva.data_evento?.split('T')[0] || '',
-        data_retirada: reserva.data_retirada?.split('T')[0] || '',
-        data_devolucao: reserva.data_devolucao?.split('T')[0] || '',
-        valor_total: reserva.valor_total?.toString() || '',
-        observacoes: reserva.observacoes || ''
-      });
-    } else {
-      setFormData({
-        id_cliente: 0,
-        id_local: undefined,
-        data_evento: '',
-        data_retirada: '',
-        data_devolucao: '',
-        valor_total: '',
-        observacoes: ''
-      });
-    }
+    let mounted = true;
+    const loadItems = async () => {
+      if (!reserva) {
+        setItems([]);
+        return;
+      }
+
+  // start loading
+      try {
+        const itens = await ReservaService.buscarItensReserva(reserva.id_reserva);
+
+        // buscar lista de produtos para popular nomes/valores
+        const produtosResp = await ProdutoService.listarProdutos({ limit: 1000 });
+        const produtos = Array.isArray(produtosResp)
+          ? produtosResp
+          : (produtosResp && (produtosResp as any).data) || [];
+
+        const mapped = (itens || []).map((i: any) => {
+          const produto = produtos.find((p: any) => p.id_produto === i.id_produto) || {
+            id_produto: i.id_produto,
+            nome: i.produto_nome || `Produto ${i.id_produto}`,
+            valor_locacao: Number(i.valor_unitario || 0),
+            valor_danificacao: 0,
+            quantidade_total: 0,
+            descricao: ''
+          };
+
+          return { produto, quantidade: Number(i.quantidade || 1) };
+        });
+
+        if (mounted) setItems(mapped);
+      } catch (err) {
+        console.error('Erro ao carregar itens da reserva:', err);
+        if (mounted) setItems([]);
+      } finally {
+        // finished loading
+      }
+    };
+
+    loadItems();
+    return () => {
+      mounted = false;
+    };
   }, [reserva]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      if (reserva) {
-        // Atualizar reserva existente
-        const updateData: AtualizarReservaRequest = {
-          id_cliente: formData.id_cliente,
-          id_local: formData.id_local,
-          data_evento: formData.data_evento,
-          data_retirada: formData.data_retirada,
-          data_devolucao: formData.data_devolucao,
-          valor_total: parseFloat(formData.valor_total),
-          observacoes: formData.observacoes || ''
-        };
-        
-        await ReservaService.atualizarReserva(reserva.id_reserva, updateData);
-      } else {
-        // Criar nova reserva
-        const novaReserva: CriarReservaRequest = {
-          id_cliente: formData.id_cliente,
-          id_local: formData.id_local,
-          data_evento: formData.data_evento,
-          data_retirada: formData.data_retirada,
-          data_devolucao: formData.data_devolucao,
-          valor_total: parseFloat(formData.valor_total),
-          observacoes: formData.observacoes || ''
-        };
-        
-        await ReservaService.criarReserva(novaReserva);
-      }
-      
-      onSuccess();
-    } catch (error) {
-      console.error('Erro ao salvar reserva:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Reuse the OrcamentoCheckoutForm for identical UI. We pass reservation dates + items mapped above.
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="id_cliente" className="block text-sm font-medium text-gray-700">
-          ID Cliente *
-        </label>
-        <Input
-          id="id_cliente"
-          name="id_cliente"
-          type="number"
-          value={formData.id_cliente}
-          onChange={handleChange}
-          required
-        />
-      </div>
+    <ReservaCheckoutForm
+      items={items}
+      onSuccess={onSuccess}
+      onCancel={onCancel}
+      idOrcamento={reserva?.id_orcamento}
+      eventoInicio={reserva?.evento_inicio}
+      eventoFim={reserva?.evento_fim}
+      onSave={async ({ idOrcamento, data, items: itemsData }) => {
+        // calcular valor_total a partir dos items
+        const valor_total = (itemsData || []).reduce((sum: number, it: any) => sum + Number(it.valor_total || 0), 0);
 
-      <div>
-        <label htmlFor="id_local" className="block text-sm font-medium text-gray-700">
-          ID Local
-        </label>
-        <Input
-          id="id_local"
-          name="id_local"
-          type="number"
-          value={formData.id_local || ''}
-          onChange={handleChange}
-        />
-      </div>
+        const payload: any = {
+          ...data,
+          valor_total,
+          itens: itemsData
+        };
 
-      <div>
-        <label htmlFor="data_evento" className="block text-sm font-medium text-gray-700">
-          Data do Evento *
-        </label>
-        <Input
-          id="data_evento"
-          name="data_evento"
-          type="date"
-          value={formData.data_evento}
-          onChange={handleChange}
-          required
-        />
-      </div>
+        if (reserva) {
+          // atualizar reserva existente
+          return await ReservaService.atualizarReserva(reserva.id_reserva, payload as AtualizarReservaRequest);
+        }
 
-      <div>
-        <label htmlFor="data_retirada" className="block text-sm font-medium text-gray-700">
-          Data de Retirada *
-        </label>
-        <Input
-          id="data_retirada"
-          name="data_retirada"
-          type="date"
-          value={formData.data_retirada}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="data_devolucao" className="block text-sm font-medium text-gray-700">
-          Data de Devolução *
-        </label>
-        <Input
-          id="data_devolucao"
-          name="data_devolucao"
-          type="date"
-          value={formData.data_devolucao}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="valor_total" className="block text-sm font-medium text-gray-700">
-          Valor Total *
-        </label>
-        <Input
-          id="valor_total"
-          name="valor_total"
-          type="number"
-          step="0.01"
-          value={formData.valor_total}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="observacoes" className="block text-sm font-medium text-gray-700">
-          Observações
-        </label>
-        <Textarea
-          id="observacoes"
-          name="observacoes"
-          value={formData.observacoes}
-          onChange={handleChange}
-          rows={3}
-        />
-      </div>
-
-      <div className="flex justify-end space-x-3 pt-4 border-t">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={isLoading}
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          loading={isLoading}
-        >
-          {reserva ? 'Atualizar Reserva' : 'Criar Reserva'}
-        </Button>
-      </div>
-    </form>
+        // criar nova reserva
+        return await ReservaService.criarReserva(payload as CriarReservaRequest);
+      }}
+      mode="edit"
+    />
   );
 };
 

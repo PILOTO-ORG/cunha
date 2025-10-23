@@ -5,7 +5,8 @@ import type {
   CriarReservaRequest,
   CriarOrcamentoComItensRequest,
   AtualizarReservaRequest,
-  PaginatedResponse 
+  PaginatedResponse,
+  ReservaStatus 
 } from '../types/api';
 
 /**
@@ -85,7 +86,8 @@ export class ReservaService {
    * @returns Promise com o orçamento criado
    */
   static async criarOrcamentoComItens(orcamento: CriarOrcamentoComItensRequest): Promise<Reserva> {
-    const response = await apiClient.post<Reserva>('/reservas', orcamento);
+    const payload = { ...orcamento, tipo: 'orçamento' };
+    const response = await apiClient.post<Reserva>('/reservas', payload);
     return response.data;
   }
 
@@ -157,8 +159,8 @@ export class ReservaService {
    * @param status - Novo status
    * @returns Promise com a reserva atualizada
    */
-  static async atualizarStatus(id: number, status: 'ativa' | 'concluída' | 'cancelada'): Promise<Reserva> {
-    const response = await apiClient.put<Reserva>(`/reservas/${id}/status`, {
+  static async atualizarStatus(id: number, status: ReservaStatus): Promise<Reserva> {
+    const response = await apiClient.put<Reserva>(`/reservas/${id}`, {
       status
     });
     return response.data;
@@ -173,7 +175,7 @@ export class ReservaService {
   static async gerarPDFOrcamento(id: number): Promise<void> {
     try {
       // Chamar API para gerar PDF e obter URL
-      const response = await apiClient.get<{ success: boolean; data: { url: string; filename: string; path: string } }>(`/reservas/${id}/pdf`);
+      const response = await apiClient.get<{ success: boolean; data: { url: string; filename: string; path: string } }>(`/orcamentos/${id}/pdf`);
 
       console.log('Response completa:', response);
       
@@ -251,7 +253,7 @@ export class ReservaService {
    */
   static async cancelarOrcamento(id: number): Promise<any> {
     try {
-      const response = await apiClient.put(`/reservas/${id}/cancelar`);
+      const response = await apiClient.put(`/orcamentos/${id}/cancelar`);
       return response.data;
     } catch (error) {
       console.error('Erro ao cancelar orçamento:', error);

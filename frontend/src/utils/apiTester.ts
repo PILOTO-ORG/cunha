@@ -356,7 +356,7 @@ export class ApiTester {
       'Atualizar status da reserva',
       () => apiClient.put('atualizar_status_reserva', {
         id_item_reserva: 1,
-        status: 'concluída'
+        status: 'Encerrado'
       })
     ));
 

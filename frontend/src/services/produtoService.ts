@@ -34,14 +34,24 @@ export class ProdutoService {
     const params = filtros ? '?' + new URLSearchParams(filtros as any).toString() : '';
     const response = await apiClient.get<PaginatedResponse<Produto>>(`/produtos${params}`);
     console.log('[ProdutoService] listarProdutos response:', response.data);
-    // Garante que data seja sempre um array
+    
+    // Verifica se a resposta já está no formato paginado correto
+    if (response.data && typeof response.data === 'object' && 'data' in response.data && Array.isArray(response.data.data)) {
+      return response.data as PaginatedResponse<Produto>;
+    }
+    
+    // Fallback para resposta antiga (array direto) - compatibilidade
     if (Array.isArray(response.data)) {
-      return { data: response.data, total: response.data.length, page: 1, limit: response.data.length, totalPages: 1 };
+      return { 
+        data: response.data, 
+        total: response.data.length, 
+        page: filtros?.page || 1, 
+        limit: filtros?.limit || response.data.length, 
+        totalPages: 1 
+      };
     }
-    if (response.data && Array.isArray(response.data.data)) {
-      return response.data;
-    }
-    // fallback para evitar tela vazia
+    
+    // Último fallback
     return { data: [], total: 0, page: 1, limit: 0, totalPages: 1 };
   }
 

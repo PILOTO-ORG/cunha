@@ -2,18 +2,36 @@
 // NÃO EDITE MANUALMENTE. ATUALIZE shared/reservaSchema.json E EXECUTE scripts/sync-reserva-schema.js
 
 export const reservaSchema = {
-  "status": [
-    "orcamento",
-    "aprovado",
-    "pendente",
-    "confirmada",
-    "em_andamento",
-    "concluida",
-    "cancelada"
-  ],
-  "defaults": {
-    "orcamentoStatus": "orcamento",
-    "reservaStatus": "pendente"
+  "orcamento": {
+    "status": [
+      "Criado",
+      "Aprovado",
+      "Cancelado"
+    ],
+    "defaults": {
+      "status": "Criado"
+    }
+  },
+  "reserva": {
+    "status": [
+      "Confirmado",
+      "Preparado",
+      "Enviado",
+      "Locado",
+      "Devolvido",
+      "Faturado",
+      "Encerrado",
+      "Cancelado"
+    ],
+    "defaults": {
+      "status": "Confirmado"
+    }
+  },
+  "eventFields": {
+    "eventoInicio": "evento_inicio",
+    "eventoFim": "evento_fim",
+    "eventoEntrega": "evento_entrega",
+    "eventoRecolha": "evento_recolha"
   },
   "itemFields": {
     "diasLocacao": "dias_locacao",
@@ -23,7 +41,8 @@ export const reservaSchema = {
   }
 } as const;
 
-export type ReservaStatus = typeof reservaSchema.status[number];
-export type OrcamentoDefaultStatus = typeof reservaSchema.defaults.orcamentoStatus;
-export type ReservaDefaultStatus = typeof reservaSchema.defaults.reservaStatus;
+export type OrcamentoStatus = typeof reservaSchema.orcamento.status[number];
+export type ReservaStatus = typeof reservaSchema.reserva.status[number];
+export type OrcamentoDefaultStatus = typeof reservaSchema.orcamento.defaults.status;
+export type ReservaDefaultStatus = typeof reservaSchema.reserva.defaults.status;
 export type ReservaItemDiasField = typeof reservaSchema.itemFields.diasLocacao;

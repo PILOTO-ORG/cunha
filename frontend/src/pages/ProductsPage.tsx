@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlusIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { useProdutos, useSoftDeleteProduto } from '../hooks/useProdutos';
 import Button from '../components/ui/Button';
@@ -14,13 +14,19 @@ import { toast } from 'react-hot-toast';
 
 const ProductsPage: React.FC = () => {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Produto | null>(null);
   const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
   
-  const { data: productsResponse, isLoading } = useProdutos({ search });
+  const { data: productsResponse, isLoading } = useProdutos({ search, page, limit: 100 });
   const softDeleteMutation = useSoftDeleteProduto();
+
+  // Reset page to 1 when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   // Filter out removed products
   const products = (productsResponse?.data || []).filter(product => product.ativo !== false);
@@ -92,10 +98,14 @@ const ProductsPage: React.FC = () => {
       header: 'Nome',
       accessor: (product: Produto) => product.nome,
       cell: (product: Produto) => (
-        <div>
-          <div className="font-medium text-gray-900">{product.nome}</div>
+        <div className="max-w-xs">
+          <div className="font-medium text-gray-900 truncate" title={product.nome}>
+            {product.nome}
+          </div>
           {product.descricao && (
-            <div className="text-sm text-gray-500 truncate max-w-xs">{product.descricao}</div>
+            <div className="text-sm text-gray-500 truncate" title={product.descricao}>
+              {product.descricao}
+            </div>
           )}
         </div>
       )
@@ -252,6 +262,41 @@ const ProductsPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {productsResponse && productsResponse.totalPages > 1 && (
+          <div className="flex justify-center items-center space-x-2 mt-6">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            
+            {Array.from({ length: productsResponse.totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setPage(pageNum)}
+                className={`px-3 py-2 text-sm font-medium rounded-md ${
+                  pageNum === page
+                    ? 'text-white bg-blue-600 border border-blue-600'
+                    : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            
+            <button
+              onClick={() => setPage(Math.min(productsResponse.totalPages, page + 1))}
+              disabled={page === productsResponse.totalPages}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Próxima
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Product Form Modal */}

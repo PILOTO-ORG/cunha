@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import DashboardService from '../services/dashboardService';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardCard from '../components/DashboardCard';
-import QuickAction from '../components/QuickAction';
 import AIAssistant from '../components/AIAssistant';
 
 const HomePage: React.FC = () => {
@@ -28,158 +27,70 @@ const HomePage: React.FC = () => {
       });
   }, []);
 
-  const dashboardData = dashboardIndicators && dashboardIndicators.data ? [
+  const dashboardData = dashboardIndicators ? [
     {
       title: 'Orçamentos Pendentes',
-      value: dashboardIndicators.data.orcamentos_pendentes ?? '0',
+      value: dashboardIndicators.orcamentos_pendentes ?? '0',
       icon: '📄',
       color: 'yellow' as const,
       onClick: () => navigate('/orcamentos')
     },
     {
       title: 'Reservas Ativas',
-      value: dashboardIndicators.data.reservas_ativas ?? '0',
+      value: dashboardIndicators.reservas_ativas ?? '0',
       icon: '📅',
       color: 'blue' as const,
       onClick: () => navigate('/reservas')
     },
     {
       title: 'Viagens Hoje',
-      value: dashboardIndicators.data.viagens_hoje ?? '0',
+      value: dashboardIndicators.viagens_hoje ?? '0',
       icon: '🚌',
       color: 'green' as const,
     },
     {
       title: 'Total de Clientes',
-      value: dashboardIndicators.data.total_clientes ?? '0',
+      value: dashboardIndicators.total_clientes ?? '0',
       icon: '👥',
       color: 'indigo' as const,
       onClick: () => navigate('/clientes')
     },
     {
       title: 'Total de Locais',
-      value: dashboardIndicators.data.total_locais ?? '0',
+      value: dashboardIndicators.total_locais ?? '0',
       icon: '🏢',
       color: 'purple' as const,
       onClick: () => navigate('/locais')
     },
     {
       title: 'Total de Produtos',
-      value: dashboardIndicators.data.total_produtos ?? '0',
+      value: dashboardIndicators.total_produtos ?? '0',
       icon: '📦',
       color: 'blue' as const,
       onClick: () => navigate('/produtos')
     },
     {
       title: 'Produtos Incompletos',
-      value: dashboardIndicators.data.produtos_campos_faltando ?? '0',
+      value: dashboardIndicators.produtos_campos_faltando ?? '0',
       icon: '⚠️',
       color: 'red' as const,
       onClick: () => navigate('/produtos?filtro=incompletos')
     },
     {
       title: 'Reservas Finalizando Hoje',
-      value: dashboardIndicators.data.reservas_fim_hoje ?? '0',
+      value: dashboardIndicators.reservas_fim_hoje ?? '0',
       icon: '⏰',
       color: 'yellow' as const,
       onClick: () => navigate('/reservas?filtro=finalizando-hoje')
     },
     {
       title: 'Reservas Concluídas',
-      value: dashboardIndicators.data.reservas_concluidas ?? '0',
+      value: dashboardIndicators.reservas_concluidas ?? '0',
       icon: '✅',
       color: 'green' as const,
       onClick: () => navigate('/reservas?filtro=concluidas')
     }
   ] : [];
-
-  const quickActions = [
-    {
-      title: 'Criar Orçamento',
-      description: 'Selecione produtos e crie um orçamento',
-      icon: '🛒',
-      color: 'blue' as const,
-      onClick: () => navigate('/orcamentos/marketplace')
-    },
-    {
-      title: 'Nova Reserva',
-      description: 'Criar uma nova reserva para cliente',
-      icon: '➕',
-      color: 'green' as const,
-      onClick: () => navigate('/reservas/nova')
-    },
-    {
-      title: 'Consultar Estoque',
-      description: 'Verificar disponibilidade de produtos',
-      icon: '🔍',
-      color: 'indigo' as const,
-      onClick: () => navigate('/produtos')
-    },
-    {
-      title: 'Aprovar Orçamentos',
-      description: 'Revisar orçamentos pendentes',
-      icon: '✅',
-      color: 'yellow' as const,
-      onClick: () => navigate('/orcamentos')
-    },
-    {
-      title: 'Converse com Nanda',
-      description: 'Assistente IA para consultas',
-      icon: '🤖',
-      color: 'purple' as const,
-      onClick: () => setShowAIAssistant(true)
-    }
-  ];
-
-  const recentActivity = [
-    { 
-      id: 1, 
-      type: 'reserva', 
-      description: 'Nova reserva criada - Casamento Silva', 
-      time: '2 min atrás',
-      status: 'success'
-    },
-    { 
-      id: 2, 
-      type: 'pagamento', 
-      description: 'Pagamento recebido - R$ 3.200,00', 
-      time: '15 min atrás',
-      status: 'success'
-    },
-    { 
-      id: 3, 
-      type: 'estoque', 
-      description: 'Estoque baixo - Cadeiras Tiffany', 
-      time: '1 hora atrás',
-      status: 'warning'
-    },
-    { 
-      id: 4, 
-      type: 'cliente', 
-      description: 'Novo cliente cadastrado - Maria Santos', 
-      time: '2 horas atrás',
-      status: 'info'
-    }
-  ];
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'reserva': return '📅';
-      case 'pagamento': return '💰';
-      case 'estoque': return '📦';
-      case 'cliente': return '👤';
-      default: return '📋';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success': return 'text-green-600 bg-green-50';
-      case 'warning': return 'text-yellow-600 bg-yellow-50';
-      case 'error': return 'text-red-600 bg-red-50';
-      default: return 'text-blue-600 bg-blue-50';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -239,20 +150,20 @@ const HomePage: React.FC = () => {
             <Link
               key={module.name}
               to={module.path}
-              className={`bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col items-center text-center ${module.bgHover} transform hover:-translate-y-1 active:translate-y-0`}
+              className={`bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col items-center text-center ${module.bgHover} transform hover:-translate-y-1 active:translate-y-0`}
             >
-              <div className={`${module.color} p-4 rounded-full mb-4 transition-all duration-300 flex items-center justify-center w-16 h-16`}>
-                <span className="text-3xl">{module.icon}</span>
+              <div className={`${module.color} p-3 sm:p-4 rounded-full mb-3 sm:mb-4 transition-all duration-300 flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16`}>
+                <span className="text-2xl sm:text-3xl">{module.icon}</span>
               </div>
-              <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-1.5">{module.name}</h3>
-              <p className="text-xs sm:text-sm text-gray-600 leading-tight px-1">{module.description}</p>
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base lg:text-lg mb-1 sm:mb-1.5">{module.name}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 leading-tight px-1 hidden sm:block">{module.description}</p>
             </Link>
           ))}
             </div>
           </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4 px-2">Indicadores</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-12">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 px-2">Indicadores</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {dashboardData.map((card, index) => (
             <DashboardCard
               key={index}
@@ -260,12 +171,7 @@ const HomePage: React.FC = () => {
               value={loading ? 'Carregando...' : error ? 'Erro' : card.value}
               icon={card.icon}
               color={card.color}
-              onClick={() => {
-                if (card.title.includes('Reservas')) navigate('/reservas');
-                if (card.title.includes('Produtos')) navigate('/produtos');
-                if (card.title.includes('Clientes')) navigate('/clientes');
-                if (card.title.includes('Orçamentos')) navigate('/orcamentos');
-              }}
+              onClick={card.onClick}
             />
           ))}
         </div>

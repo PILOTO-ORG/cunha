@@ -1,5 +1,8 @@
 // Types and interfaces for the ERP system - Aligned with real database schema
-import { StatusGeral, StatusOrcamento } from './orcamento';
+import { OrcamentoStatus, ReservaStatus } from '../constants/reservaSchema';
+
+// Re-export for consistency
+export type { OrcamentoStatus, ReservaStatus };
 
 export interface Produto {
   id_produto: number;
@@ -57,19 +60,25 @@ export interface Local {
 
 export interface Reserva {
   id_reserva: number;
+  id_orcamento?: number | null; // Referência ao orçamento de origem
   id_cliente: number;
   id_local?: number | null;
   data_evento: string; // timestamp
   data_retirada: string; // timestamp
   data_devolucao: string; // timestamp
+  evento_inicio?: string; // timestamp - novo campo
+  evento_fim?: string; // timestamp - novo campo
+  evento_entrega?: string; // timestamp - novo campo
+  evento_recolha?: string; // timestamp - novo campo
   valor_total: number;
-  status: 'pendente' | 'aprovado' | 'cancelado';
+  status: ReservaStatus;
   observacoes?: string | null;
   forma_pagamento?: string | null;
   caucao_percentual?: number;
   validade_dias?: number;
   criado_em?: string;
   atualizado_em?: string;
+  pdf_url?: string; // URL do PDF gerado
   // Campos populados via JOIN
   cliente_nome?: string;
   local_nome?: string;
@@ -207,6 +216,10 @@ export interface CriarReservaRequest {
   data_evento: string;
   data_retirada: string;
   data_devolucao: string;
+  evento_inicio?: string;
+  evento_fim?: string;
+  evento_entrega?: string;
+  evento_recolha?: string;
   valor_total: number;
   observacoes?: string;
 }
@@ -224,8 +237,12 @@ export interface AtualizarReservaRequest {
   data_evento?: string;
   data_retirada?: string;
   data_devolucao?: string;
+  evento_inicio?: string;
+  evento_fim?: string;
+  evento_entrega?: string;
+  evento_recolha?: string;
   valor_total?: number;
-  status?: 'pendente' | 'aprovado' | 'cancelado';
+  status?: ReservaStatus;
   observacoes?: string;
   forma_pagamento?: string;
   caucao_percentual?: number;
@@ -259,7 +276,7 @@ export interface Orcamento {
   id_cliente: number;
   data_criacao: string;
   data_validade: string;
-  status: 'pendente' | 'aprovado' | 'cancelado';
+  status: OrcamentoStatus;
   valor_total: number;
   observacoes?: string;
   // Campos populados via JOIN
@@ -289,7 +306,7 @@ export interface OrcamentoAgrupado {
   data_inicio: string;
   data_fim: string;
   data_criacao: string;
-  status: StatusGeral;
+  status: OrcamentoStatus;
   frete?: number;
   desconto?: number;
   forma_pagamento?: string;
@@ -327,7 +344,7 @@ export interface AtualizarOrcamentoRequest {
   id_cliente?: number;
   id_local?: number;
   data_validade?: string;
-  status?: 'pendente' | 'aprovado' | 'cancelado';
+  status?: OrcamentoStatus;
   observacoes?: string;
   itens?: {
     id_produto: number;
@@ -338,7 +355,7 @@ export interface AtualizarOrcamentoRequest {
 }
 
 export interface OrcamentoFilter extends PaginationParams {
-  status?: StatusOrcamento;
+  status?: OrcamentoStatus;
   id_cliente?: number;
   data_inicio?: string;
   data_fim?: string;
@@ -352,6 +369,13 @@ export interface DashboardData {
   clientes_ativos: number;
   orcamentos_pendentes: number;
   alertas_estoque: number;
+  total_clientes: number;
+  total_locais: number;
+  total_produtos: number;
+  produtos_campos_faltando: number;
+  reservas_fim_hoje: number;
+  reservas_concluidas: number;
+  viagens_hoje: number;
 }
 
 // Pagination types
@@ -377,7 +401,7 @@ export interface ProdutoFilter extends PaginationParams {
 }
 
 export interface ReservaFilter extends PaginationParams {
-  status?: 'pendente' | 'aprovado' | 'cancelado';
+  status?: ReservaStatus;
   data_inicio?: string;
   data_fim?: string;
   id_cliente?: number;
@@ -400,15 +424,16 @@ export interface MovimentoFilter extends PaginationParams {
   data_fim?: string;
 }
 
-// Additional types for services
-export type ReservaStatus = 'pendente' | 'aprovado' | 'cancelado';
-
 export interface CriarOrcamentoComItensRequest {
   id_cliente: number;
   id_local?: number | null;
-  data_evento: string;
-  data_retirada: string;
-  data_devolucao: string;
+  data_evento?: string; // opcional para compatibilidade
+  data_retirada?: string; // opcional para compatibilidade
+  data_devolucao?: string; // opcional para compatibilidade
+  evento_inicio: string; // obrigatório para orçamentos
+  evento_fim: string; // obrigatório para orçamentos
+  evento_entrega?: string; // calculado automaticamente
+  evento_recolha?: string; // calculado automaticamente
   status?: ReservaStatus;
   observacoes?: string;
   valor_frete?: number;
@@ -420,5 +445,6 @@ export interface CriarOrcamentoComItensRequest {
     dias?: number;
     diasLocacao?: number;
     valor_unitario?: number;
+    valor_total?: number;
   }>;
 }

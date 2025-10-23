@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReservaService from '../services/reservaService';
-import type { ReservaFilter, CriarReservaRequest, AtualizarReservaRequest } from '../types/api';
+import type { ReservaFilter, CriarReservaRequest, AtualizarReservaRequest, ReservaStatus } from '../types/api';
 
 // Query Keys
 export const RESERVA_QUERY_KEYS = {
@@ -121,7 +121,7 @@ export function useAtualizarStatusReserva() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: 'ativa' | 'concluída' | 'cancelada' }) =>
+    mutationFn: ({ id, status }: { id: number; status: ReservaStatus }) =>
       ReservaService.atualizarStatus(id, status),
     onSuccess: (data, variables) => {
       // Atualizar cache da reserva específica

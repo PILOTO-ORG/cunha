@@ -23,12 +23,6 @@ const NotFoundPage: React.FC = () => {
               >
                 Voltar para a página inicial
               </Link>
-              <Link
-                to="/nanda"
-                className="btn btn-secondary"
-              >
-                Falar com a Nanda
-              </Link>
             </div>
           </div>
         </main>

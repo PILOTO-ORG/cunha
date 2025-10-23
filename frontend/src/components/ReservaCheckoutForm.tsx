@@ -31,7 +31,7 @@ interface CartItem {
   quantidade: number;
 }
 
-interface OrcamentoCheckoutFormProps {
+interface ReservaCheckoutFormProps {
   items: CartItem[];
   onSuccess: (orcamentoData?: any) => void;
   onCancel: () => void;
@@ -50,7 +50,7 @@ interface OrcamentoCheckoutFormProps {
   onSave?: (opts: { idOrcamento?: number | undefined; data: any; items: any[] }) => Promise<any>;
 }
 
-const OrcamentoCheckoutForm: React.FC<OrcamentoCheckoutFormProps> = ({
+const ReservaCheckoutForm: React.FC<ReservaCheckoutFormProps> = ({
   items,
   onSuccess,
   onCancel,
@@ -899,7 +899,7 @@ const OrcamentoCheckoutForm: React.FC<OrcamentoCheckoutFormProps> = ({
   };
 
   return (
-    <div className="w-full bg-white rounded-xl shadow-2xl overflow-hidden max-w-7xl mx-auto">
+    <div className="w-full bg-white rounded-xl shadow-2xl overflow-hidden">
       {/* Header Aprimorado */}
       <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700">
         <div className="absolute inset-0 bg-black opacity-5"></div>
@@ -933,7 +933,7 @@ const OrcamentoCheckoutForm: React.FC<OrcamentoCheckoutFormProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="p-4 sm:p-6 lg:p-8">
+      <form onSubmit={handleSubmit} className="p-6 sm:p-8">
         {/* Seção: Datas do Orçamento e Evento */}
         <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl border-2 border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow mb-6">
           <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-5 py-3">
@@ -2408,4 +2408,4 @@ const OrcamentoCheckoutForm: React.FC<OrcamentoCheckoutFormProps> = ({
   );
 };
 
-export default OrcamentoCheckoutForm;
+export default ReservaCheckoutForm;

@@ -4,7 +4,8 @@ import type {
   ReservaFilter,
   CriarReservaRequest,
   AtualizarReservaRequest,
-  PaginatedResponse 
+  PaginatedResponse,
+  ReservaStatus 
 } from '../types/api';
 
 /**
@@ -134,8 +135,8 @@ export class ReservaService {
    * @param status - Novo status
    * @returns Promise com a reserva atualizada
    */
-  static async atualizarStatus(id: number, status: 'ativa' | 'concluída' | 'cancelada'): Promise<Reserva> {
-    const response = await apiClient.put<Reserva>(`/reservas/${id}/status`, {
+  static async atualizarStatus(id: number, status: ReservaStatus): Promise<Reserva> {
+    const response = await apiClient.put<Reserva>(`/reservas/${id}`, {
       status
     });
     return response.data;

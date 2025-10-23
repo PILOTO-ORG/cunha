@@ -48,7 +48,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose }) => {
       if (similarExample) {
         setResponse(similarExample.resposta.replace(/\\n/g, '\n'));
       } else {
-        setResponse('Olá! Sou a Nanda, sua assistente virtual. Não encontrei informações específicas sobre sua consulta, mas posso ajudar com:\n\n• Consultas sobre produtos e estoque\n• Informações de clientes e reservas\n• Relatórios e orçamentos\n• Gestão de eventos e contratos\n\nPode reformular sua pergunta ou escolher uma das opções acima?');
+        setResponse('Olá! Sou sua assistente virtual. Não encontrei informações específicas sobre sua consulta, mas posso ajudar com:\n\n• Consultas sobre produtos e estoque\n• Informações de clientes e reservas\n• Relatórios e orçamentos\n• Gestão de eventos e contratos\n\nPode reformular sua pergunta ou escolher uma das opções acima?');
       }
       
       setIsLoading(false);
@@ -73,7 +73,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose }) => {
                 <span className="text-white text-xl">🤖</span>
               </div>
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Nanda - Assistente IA</h3>
+                <h3 className="text-lg font-medium text-gray-900">Assistente IA</h3>
                 <p className="text-sm text-gray-500">Sua assistente virtual para gestão</p>
               </div>
             </div>
@@ -91,7 +91,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose }) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Chat Interface */}
             <div className="space-y-4">
-              <h4 className="font-medium text-gray-900">Converse com a Nanda</h4>
+              <h4 className="font-medium text-gray-900">Converse com o Assistente</h4>
               
               <div className="border rounded-lg p-4 bg-gray-50 min-h-[200px]">
                 {response ? (
