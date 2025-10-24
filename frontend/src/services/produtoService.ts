@@ -21,6 +21,11 @@ import type {
  * - remover_produto - Remove produto
  * - listar_produtos_estoque_baixo - Lista produtos com estoque baixo
  * - verificar_disponibilidade_multipla - Verifica disponibilidade de múltiplos produtos
+ * 
+ * Configuração de ambiente:
+ * - REACT_APP_API_URL: URL base da API (ex: https://api.piloto.live)
+ * - Se não definida, usa window.location.origin (mesmo domínio do frontend)
+ * - Todas as chamadas incluem automaticamente o prefixo /api/
  */
 
 export class ProdutoService {
@@ -74,10 +79,7 @@ export class ProdutoService {
    */
   // Disponibilidade: endpoint REST customizado, ajuste conforme backend
   static async verificarDisponibilidade(consulta: DisponibilidadeConsulta): Promise<DisponibilidadeResposta> {
-    const response = await apiClient.get<DisponibilidadeResposta>(`/produtos/${consulta.id_produto}/disponibilidade`, {
-      data_inicio: consulta.data_inicio,
-      data_fim: consulta.data_fim
-    });
+    const response = await apiClient.get<DisponibilidadeResposta>(`/produtos/${consulta.id_produto}/disponibilidade?data_inicio=${consulta.data_inicio}&data_fim=${consulta.data_fim}`);
     return response.data;
   }
 
@@ -102,7 +104,7 @@ export class ProdutoService {
       // Adicionar imagem
       formData.append('imagem', imagem);
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.piloto.live'}/api/produtos`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || window.location.origin}/api/produtos`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
@@ -140,7 +142,7 @@ export class ProdutoService {
       // Adicionar imagem
       formData.append('imagem', imagem);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.piloto.live'}/api/produtos/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || window.location.origin}/api/produtos/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
@@ -151,7 +153,7 @@ export class ProdutoService {
       if (!response.ok) throw new Error('Erro ao atualizar produto');
       return await response.json();
     } else {
-      const response = await apiClient.put<Produto>(`/api/produtos/${id}`, dados);
+      const response = await apiClient.put<Produto>(`/produtos/${id}`, dados);
       return response.data;
     }
   }
@@ -223,7 +225,7 @@ export class ProdutoService {
       formData.append('imagens', imagem);
     });
     
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/produtos/${id}/galeria`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || window.location.origin}/api/produtos/${id}/galeria`, {
         method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
