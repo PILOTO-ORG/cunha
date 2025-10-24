@@ -102,7 +102,7 @@ export class ProdutoService {
       // Adicionar imagem
       formData.append('imagem', imagem);
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/api/produtos`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.piloto.live'}/api/produtos`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
@@ -139,8 +139,8 @@ export class ProdutoService {
       
       // Adicionar imagem
       formData.append('imagem', imagem);
-      
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/api/produtos/${id}`, {
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.piloto.live'}/api/produtos/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
@@ -151,7 +151,7 @@ export class ProdutoService {
       if (!response.ok) throw new Error('Erro ao atualizar produto');
       return await response.json();
     } else {
-      const response = await apiClient.put<Produto>(`/produtos/${id}`, dados);
+      const response = await apiClient.put<Produto>(`/api/produtos/${id}`, dados);
       return response.data;
     }
   }
@@ -223,8 +223,8 @@ export class ProdutoService {
       formData.append('imagens', imagem);
     });
     
-    const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/api/produtos/${id}/galeria`, {
-      method: 'POST',
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/produtos/${id}/galeria`, {
+        method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
       },
